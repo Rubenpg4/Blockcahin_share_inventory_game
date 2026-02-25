@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EAI Interoperable Asset Metadata",
+  "description": "Esquema de metadatos para activos interoperables del Ecosistema EAI. Los atributos marcados con 'immutable: true' no pueden modificarse una vez desplegados en IPFS.",
+  "type": "object",
+  "required": ["name", "description", "image", "token_id", "attributes"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre del activo (puede incluir nombre en ambos juegos separado por '/').",
+      "example": "Cosmic Blade / Enchanted Sword"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descripción del activo y su interoperabilidad.",
+      "example": "Activo interoperable compartido entre Game A (Space) y Game B (Fantasy)."
+    },
+    "image": {
+      "type": "string",
+      "format": "uri",
+      "description": "URI IPFS de la imagen base del activo.",
+      "example": "ipfs://QmExampleCID/image.png"
+    },
+    "token_id": {
+      "type": "integer",
+      "description": "Identificador único del token en el contrato EAIProject.",
+      "example": 1
+    },
+    "external_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL externa para más información sobre el activo."
+    },
+    "animation_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "URI IPFS de una animación o modelo 3D del activo."
+    },
+    "attributes": {
+      "type": "array",
+      "description": "Lista de atributos del activo. Los atributos con 'immutable: true' son fijos y determinan las estadísticas del juego.",
+      "items": {
+        "type": "object",
+        "required": ["trait_type", "value"],
+        "properties": {
+          "trait_type": {
+            "type": "string",
+            "description": "Nombre del atributo."
+          },
+          "value": {
+            "description": "Valor del atributo (string, número o booleano)."
+          },
+          "display_type": {
+            "type": "string",
+            "enum": ["number", "boost_number", "boost_percentage", "date"],
+            "description": "Tipo de visualización para marketplaces (OpenSea compatible)."
+          },
+          "max_value": {
+            "type": "number",
+            "description": "Valor máximo posible (para atributos numéricos)."
+          },
+          "immutable": {
+            "type": "boolean",
+            "description": "Si es true, este atributo no puede ser modificado post-despliegue."
+          }
+        }
+      },
+      "example": [
+        { "trait_type": "power",       "value": 85,       "display_type": "number", "max_value": 100, "immutable": true },
+        { "trait_type": "rarity",      "value": "Epic",                                               "immutable": true },
+        { "trait_type": "durability",  "value": 100,      "display_type": "number", "max_value": 100, "immutable": true },
+        { "trait_type": "element",     "value": "Void",                                               "immutable": true },
+        { "trait_type": "asset_type",  "value": "Weapon",                                             "immutable": true },
+        { "trait_type": "game_a_skin", "value": "Plasma Rifle" },
+        { "trait_type": "game_b_skin", "value": "Enchanted Sword" }
+      ]
+    }
+  },
+  "example": {
+    "name": "Cosmic Blade / Enchanted Sword",
+    "description": "Activo interoperable compartido entre Game A (Space) y Game B (Fantasy).",
+    "image": "ipfs://QmExampleCID/image.png",
+    "token_id": 1,
+    "external_url": "https://eai-project.example.com/tokens/1",
+    "attributes": [
+      { "trait_type": "power",       "value": 85,       "display_type": "number", "max_value": 100, "immutable": true },
+      { "trait_type": "rarity",      "value": "Epic",                                               "immutable": true },
+      { "trait_type": "durability",  "value": 100,      "display_type": "number", "max_value": 100, "immutable": true },
+      { "trait_type": "element",     "value": "Void",                                               "immutable": true },
+      { "trait_type": "asset_type",  "value": "Weapon",                                             "immutable": true },
+      { "trait_type": "game_a_skin", "value": "Plasma Rifle" },
+      { "trait_type": "game_b_skin", "value": "Enchanted Sword" }
+    ]
+  }
+}

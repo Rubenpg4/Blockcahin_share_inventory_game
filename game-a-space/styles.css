@@ -1,0 +1,246 @@
+/* ─── Game A: Space Edition ─────────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #050a14;
+  color: #c9e4f5;
+  font-family: 'Courier New', Courier, monospace;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+header h1 {
+  font-size: 2.2rem;
+  color: #7effd4;
+  text-shadow: 0 0 12px #7effd466;
+  letter-spacing: 0.05em;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  color: #4a8fa8;
+  margin-top: 0.4rem;
+}
+
+/* ─── Wallet ────────────────────────────────────────────────────────────────── */
+#wallet-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 2rem;
+}
+
+button {
+  padding: 0.6rem 1.4rem;
+  border: 1px solid #7effd4;
+  background: transparent;
+  color: #7effd4;
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+}
+
+button:hover:not(:disabled) {
+  background: #7effd4;
+  color: #050a14;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#wallet-address {
+  font-size: 0.85rem;
+  color: #4a8fa8;
+}
+
+/* ─── Asset lookup ───────────────────────────────────────────────────────────── */
+#asset-lookup {
+  max-width: 600px;
+  margin: 0 auto 2rem;
+  text-align: center;
+}
+
+#asset-lookup h2 {
+  font-size: 1.1rem;
+  color: #7effd4;
+  margin-bottom: 0.8rem;
+}
+
+.input-row {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.input-row label {
+  font-size: 0.9rem;
+}
+
+.input-row input {
+  padding: 0.5rem 0.8rem;
+  background: #0b1a2e;
+  border: 1px solid #4a8fa8;
+  color: #c9e4f5;
+  font-family: inherit;
+  font-size: 0.95rem;
+  border-radius: 4px;
+  width: 100px;
+}
+
+/* ─── Asset card ─────────────────────────────────────────────────────────────── */
+#asset-card {
+  max-width: 420px;
+  margin: 0 auto 2rem;
+}
+
+.card.space-theme {
+  border: 1px solid #1a3a5c;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #091929, #0b2340);
+  box-shadow: 0 0 24px #1a5f8a44;
+  overflow: hidden;
+  position: relative;
+}
+
+.card-badge {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.8rem;
+  background: #1a3a5c;
+  color: #7effd4;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  border: 1px solid #7effd444;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.card-image {
+  background: #071420;
+  text-align: center;
+  padding: 1.5rem;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-image img {
+  max-height: 160px;
+  max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px #7effd488);
+}
+
+.card-body {
+  padding: 1.2rem;
+}
+
+.card-body h2 {
+  font-size: 1.3rem;
+  color: #7effd4;
+  margin-bottom: 0.4rem;
+}
+
+.card-body p {
+  font-size: 0.85rem;
+  color: #6a9ab5;
+  margin-bottom: 0.8rem;
+  line-height: 1.5;
+}
+
+/* ─── Stats grid ─────────────────────────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+}
+
+.stat {
+  background: #0a1e30;
+  border: 1px solid #1a3a5c;
+  border-radius: 4px;
+  padding: 0.4rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  color: #4a8fa8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-value {
+  font-size: 0.95rem;
+  color: #c9e4f5;
+  font-weight: bold;
+}
+
+.game-skin-label {
+  font-size: 0.82rem;
+  color: #4a8fa8;
+  margin-top: 0.4rem;
+}
+
+.game-skin-label span {
+  color: #7effd4;
+}
+
+/* ─── Marketplace ────────────────────────────────────────────────────────────── */
+#market-section {
+  max-width: 420px;
+  margin: 0 auto 2rem;
+  border: 1px solid #1a3a5c;
+  border-radius: 8px;
+  padding: 1.2rem;
+  background: #091929;
+}
+
+#market-section h2 {
+  font-size: 1rem;
+  color: #7effd4;
+  margin-bottom: 0.8rem;
+}
+
+#listing-info p {
+  font-size: 0.88rem;
+  margin-bottom: 0.6rem;
+}
+
+/* ─── Status bar ─────────────────────────────────────────────────────────────── */
+#status-bar {
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+#status-msg {
+  font-size: 0.85rem;
+  color: #7effd4;
+  min-height: 1.2em;
+}
+
+/* ─── Utility ────────────────────────────────────────────────────────────────── */
+.hidden {
+  display: none !important;
+}
