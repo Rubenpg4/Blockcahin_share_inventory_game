@@ -1,0 +1,53 @@
+{
+    "name": "Void Blade / Shadow Dagger",
+    "description": "A deadly melee weapon forged in the void between worlds.",
+    "image": "",
+    "token_id": 4,
+    "attributes": [
+        {
+            "trait_type": "power",
+            "value": 92,
+            "display_type": "number",
+            "max_value": 100,
+            "immutable": true
+        },
+        {
+            "trait_type": "rarity",
+            "value": "Legendary",
+            "immutable": true
+        },
+        {
+            "trait_type": "durability",
+            "value": 70,
+            "display_type": "number",
+            "max_value": 100,
+            "immutable": true
+        },
+        {
+            "trait_type": "element",
+            "value": "Void",
+            "immutable": true
+        },
+        {
+            "trait_type": "asset_type",
+            "value": "Weapon",
+            "immutable": true
+        },
+        {
+            "trait_type": "game_a_skin",
+            "value": "Void Blade"
+        },
+        {
+            "trait_type": "game_b_skin",
+            "value": "Shadow Dagger"
+        },
+        {
+            "trait_type": "game_a_icon",
+            "value": "⚔️"
+        },
+        {
+            "trait_type": "game_b_icon",
+            "value": "🗡️"
+        }
+    ]
+}

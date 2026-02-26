@@ -1,246 +1,911 @@
-/* ─── Game A: Space Edition ─────────────────────────────────────────────────── */
-* {
+/* ═══════════════════════════════════════════════════════════════════════════
+   Game A: Space Arsenal — Premium Sci-Fi UI with Login + Friends
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+:root {
+  --bg-deep: #03060d;
+  --bg-mid: #080f1e;
+  --bg-card: #0b1628;
+  --bg-panel: #091322;
+  --border-dim: #1a2d4a;
+  --border-glow: #2ee8c5;
+  --text-primary: #d0eaff;
+  --text-secondary: #5a8fb0;
+  --text-muted: #3a6585;
+  --accent: #2ee8c5;
+  --accent-alt: #00d4ff;
+  --danger: #ff4c6a;
+  --rarity-common: #8899aa;
+  --rarity-rare: #3ea8ff;
+  --rarity-epic: #b44cff;
+  --rarity-legendary: #ffb423;
+  --font-display: 'Orbitron', sans-serif;
+  --font-body: 'Rajdhani', sans-serif;
+}
+
 body {
-  background: #050a14;
-  color: #c9e4f5;
-  font-family: 'Courier New', Courier, monospace;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.stars-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 70%, rgba(255, 255, 255, 0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60% 20%, rgba(255, 255, 255, 0.5) 0%, transparent 100%),
+    radial-gradient(2px 2px at 10% 80%, rgba(46, 232, 197, 0.3) 0%, transparent 100%),
+    radial-gradient(2px 2px at 90% 10%, rgba(0, 212, 255, 0.2) 0%, transparent 100%);
+  animation: drift 60s linear infinite;
+}
+
+@keyframes drift {
+  0% {
+    transform: translateY(0)
+  }
+
+  100% {
+    transform: translateY(-20px)
+  }
+}
+
+/* ─── LOGIN SCREEN ─────────────────────────────────────────────────────────── */
+.login-screen {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 100vh;
   padding: 2rem;
 }
 
-header {
+.login-box {
   text-align: center;
+  max-width: 600px;
+  width: 100%;
+}
+
+.login-title {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: var(--accent);
+  text-shadow: 0 0 30px rgba(46, 232, 197, 0.3);
+  letter-spacing: 0.12em;
+  margin-bottom: 0.5rem;
+}
+
+.login-subtitle {
+  font-size: 1rem;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
   margin-bottom: 2.5rem;
 }
 
-header h1 {
-  font-size: 2.2rem;
-  color: #7effd4;
-  text-shadow: 0 0 12px #7effd466;
-  letter-spacing: 0.05em;
-}
-
-.subtitle {
-  font-size: 0.9rem;
-  color: #4a8fa8;
-  margin-top: 0.4rem;
-}
-
-/* ─── Wallet ────────────────────────────────────────────────────────────────── */
-#wallet-section {
+.player-cards {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 2rem;
-}
-
-button {
-  padding: 0.6rem 1.4rem;
-  border: 1px solid #7effd4;
-  background: transparent;
-  color: #7effd4;
-  font-family: inherit;
-  font-size: 0.95rem;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background 0.2s, color 0.2s;
-}
-
-button:hover:not(:disabled) {
-  background: #7effd4;
-  color: #050a14;
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-#wallet-address {
-  font-size: 0.85rem;
-  color: #4a8fa8;
-}
-
-/* ─── Asset lookup ───────────────────────────────────────────────────────────── */
-#asset-lookup {
-  max-width: 600px;
-  margin: 0 auto 2rem;
-  text-align: center;
-}
-
-#asset-lookup h2 {
-  font-size: 1.1rem;
-  color: #7effd4;
-  margin-bottom: 0.8rem;
-}
-
-.input-row {
-  display: flex;
-  gap: 0.6rem;
+  gap: 1rem;
   justify-content: center;
-  align-items: center;
   flex-wrap: wrap;
 }
 
-.input-row label {
-  font-size: 0.9rem;
+.player-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: 12px;
+  padding: 1.5rem 1.2rem;
+  width: 160px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-body);
+  color: var(--text-primary);
 }
 
-.input-row input {
-  padding: 0.5rem 0.8rem;
-  background: #0b1a2e;
-  border: 1px solid #4a8fa8;
-  color: #c9e4f5;
-  font-family: inherit;
-  font-size: 0.95rem;
-  border-radius: 4px;
-  width: 100px;
+.player-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(46, 232, 197, 0.15);
 }
 
-/* ─── Asset card ─────────────────────────────────────────────────────────────── */
-#asset-card {
-  max-width: 420px;
-  margin: 0 auto 2rem;
+.player-avatar {
+  font-size: 3rem;
+  line-height: 1;
 }
 
-.card.space-theme {
-  border: 1px solid #1a3a5c;
-  border-radius: 8px;
-  background: linear-gradient(145deg, #091929, #0b2340);
-  box-shadow: 0 0 24px #1a5f8a44;
-  overflow: hidden;
+.player-name {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+
+.player-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* ─── GAME SCREEN ──────────────────────────────────────────────────────────── */
+.game-screen {
   position: relative;
+  z-index: 1;
 }
 
-.card-badge {
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 2rem;
+  border-bottom: 1px solid var(--border-dim);
+  background: linear-gradient(180deg, rgba(8, 15, 30, 0.95), rgba(3, 6, 13, 0.9));
+  backdrop-filter: blur(8px);
+}
+
+header h1 {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--accent);
+  text-shadow: 0 0 15px rgba(46, 232, 197, 0.2);
+  letter-spacing: 0.1em;
+}
+
+.subtitle {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 0.1rem;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(46, 232, 197, 0.05);
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+}
+
+.user-avatar {
+  font-size: 1.5rem;
+}
+
+.user-name {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  display: block;
+}
+
+.user-addr {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  display: block;
+}
+
+.user-balance {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: rgba(57, 163, 212, 0.08);
+  border: 1px solid rgba(57, 163, 212, 0.2);
+  border-radius: 6px;
+  padding: 0.3rem 0.7rem;
+  margin-left: 0.5rem;
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+
+.btn-logout {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--border-dim);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-logout:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem 4rem;
+}
+
+/* ─── Section Headers ──────────────────────────────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.section-header h2 {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: rgba(46, 232, 197, 0.06);
+  border: 1px solid var(--border-dim);
+  padding: 0.15rem 0.6rem;
+  border-radius: 20px;
+}
+
+/* ─── Inventory Grid ───────────────────────────────────────────────────────── */
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.7rem;
+  min-height: 80px;
+}
+
+.empty-inventory {
+  grid-column: 1/-1;
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  border: 1px dashed var(--border-dim);
+  border-radius: 8px;
+}
+
+/* ─── Item Cell ────────────────────────────────────────────────────────────── */
+.item-cell {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  padding: 0.9rem 0.5rem 0.6rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  overflow: hidden;
+}
+
+.item-cell::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transition: opacity 0.3s;
+}
+
+.item-cell:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.item-cell.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 18px rgba(46, 232, 197, 0.12);
+}
+
+.item-cell.rarity-common {
+  border-color: var(--rarity-common);
+}
+
+.item-cell.rarity-common::before {
+  background: var(--rarity-common);
+  opacity: 0.4;
+}
+
+.item-cell.rarity-rare {
+  border-color: rgba(62, 168, 255, 0.5);
+}
+
+.item-cell.rarity-rare::before {
+  background: var(--rarity-rare);
+  opacity: 0.6;
+}
+
+.item-cell.rarity-rare:hover {
+  box-shadow: 0 6px 20px rgba(62, 168, 255, 0.12);
+}
+
+.item-cell.rarity-epic {
+  border-color: rgba(180, 76, 255, 0.5);
+}
+
+.item-cell.rarity-epic::before {
+  background: var(--rarity-epic);
+  opacity: 0.7;
+}
+
+.item-cell.rarity-epic:hover {
+  box-shadow: 0 6px 20px rgba(180, 76, 255, 0.12);
+}
+
+.item-cell.rarity-legendary {
+  border-color: rgba(255, 180, 35, 0.5);
+}
+
+.item-cell.rarity-legendary::before {
+  background: var(--rarity-legendary);
+  opacity: 1;
+}
+
+.item-cell.rarity-legendary:hover {
+  box-shadow: 0 6px 20px rgba(255, 180, 35, 0.18);
+}
+
+@keyframes legendaryPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 6px rgba(255, 180, 35, 0.08)
+  }
+
+  50% {
+    box-shadow: 0 0 14px rgba(255, 180, 35, 0.22)
+  }
+}
+
+.item-cell.rarity-legendary {
+  animation: legendaryPulse 3s ease-in-out infinite;
+}
+
+.item-icon {
+  font-size: 2rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 5px rgba(46, 232, 197, 0.15));
+}
+
+.item-name {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+}
+
+.item-qty {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.item-rarity-label {
+  font-size: 0.56rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.item-rarity-label.common {
+  color: var(--rarity-common);
+}
+
+.item-rarity-label.rare {
+  color: var(--rarity-rare);
+}
+
+.item-rarity-label.epic {
+  color: var(--rarity-epic);
+}
+
+.item-rarity-label.legendary {
+  color: var(--rarity-legendary);
+}
+
+.item-cell .item-price {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 0.1rem;
+}
+
+.item-cell .btn-buy {
+  font-size: 0.7rem;
+  padding: 0.3rem 0.7rem;
+  margin-top: 0.2rem;
+  border-radius: 4px;
+}
+
+/* ─── Detail Panel ─────────────────────────────────────────────────────────── */
+.detail-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100vh;
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border-dim);
+  z-index: 100;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: -6px 0 25px rgba(0, 0, 0, 0.5);
+}
+
+.detail-panel.visible {
+  transform: translateX(0);
+}
+
+.detail-panel.hidden {
+  transform: translateX(100%);
+}
+
+.btn-close {
   position: absolute;
   top: 0.8rem;
   right: 0.8rem;
-  background: #1a3a5c;
-  color: #7effd4;
-  font-size: 0.75rem;
-  padding: 0.25rem 0.6rem;
-  border-radius: 20px;
-  border: 1px solid #7effd444;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.card-image {
-  background: #071420;
-  text-align: center;
-  padding: 1.5rem;
-  min-height: 180px;
+  background: none;
+  border: 1px solid var(--border-dim);
+  color: var(--text-secondary);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.85rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
 }
 
-.card-image img {
-  max-height: 160px;
-  max-width: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 0 8px #7effd488);
+.btn-close:hover {
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
-.card-body {
-  padding: 1.2rem;
+.detail-content {
+  padding: 1.8rem 1.3rem;
 }
 
-.card-body h2 {
-  font-size: 1.3rem;
-  color: #7effd4;
+.detail-icon {
+  font-size: 3.5rem;
+  text-align: center;
+  margin-bottom: 0.8rem;
+  filter: drop-shadow(0 3px 10px rgba(46, 232, 197, 0.2));
+}
+
+.detail-content h3 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.04em;
   margin-bottom: 0.4rem;
 }
 
-.card-body p {
-  font-size: 0.85rem;
-  color: #6a9ab5;
+.detail-rarity {
+  display: block;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
   margin-bottom: 0.8rem;
-  line-height: 1.5;
+  padding: 0.2rem 0.7rem;
+  border-radius: 16px;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-/* ─── Stats grid ─────────────────────────────────────────────────────────────── */
-.stats-grid {
+.detail-rarity.common {
+  color: var(--rarity-common);
+  border: 1px solid rgba(136, 153, 170, 0.3);
+  background: rgba(136, 153, 170, 0.05);
+}
+
+.detail-rarity.rare {
+  color: var(--rarity-rare);
+  border: 1px solid rgba(62, 168, 255, 0.3);
+  background: rgba(62, 168, 255, 0.05);
+}
+
+.detail-rarity.epic {
+  color: var(--rarity-epic);
+  border: 1px solid rgba(180, 76, 255, 0.3);
+  background: rgba(180, 76, 255, 0.05);
+}
+
+.detail-rarity.legendary {
+  color: var(--rarity-legendary);
+  border: 1px solid rgba(255, 180, 35, 0.3);
+  background: rgba(255, 180, 35, 0.05);
+}
+
+.detail-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.detail-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
+  gap: 0.4rem;
   margin-bottom: 0.8rem;
 }
 
-.stat {
-  background: #0a1e30;
-  border: 1px solid #1a3a5c;
-  border-radius: 4px;
-  padding: 0.4rem 0.6rem;
+.detail-stats .stat {
+  background: rgba(11, 22, 40, 0.8);
+  border: 1px solid var(--border-dim);
+  border-radius: 5px;
+  padding: 0.4rem 0.5rem;
   display: flex;
   flex-direction: column;
 }
 
-.stat-label {
-  font-size: 0.7rem;
-  color: #4a8fa8;
+.detail-stats .stat-label {
+  font-size: 0.58rem;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  font-weight: 600;
 }
 
-.stat-value {
-  font-size: 0.95rem;
-  color: #c9e4f5;
-  font-weight: bold;
+.detail-stats .stat-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
-.game-skin-label {
+.detail-skin-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.detail-skin-label span {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.detail-balance {
   font-size: 0.82rem;
-  color: #4a8fa8;
-  margin-top: 0.4rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
 }
 
-.game-skin-label span {
-  color: #7effd4;
+.detail-balance span {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1.05rem;
 }
 
-/* ─── Marketplace ────────────────────────────────────────────────────────────── */
-#market-section {
-  max-width: 420px;
-  margin: 0 auto 2rem;
-  border: 1px solid #1a3a5c;
-  border-radius: 8px;
-  padding: 1.2rem;
-  background: #091929;
+/* ─── Sell Form ────────────────────────────────────────────────────────────── */
+.sell-form {
+  border-top: 1px solid var(--border-dim);
+  padding-top: 0.8rem;
+  margin-top: 0.8rem;
 }
 
-#market-section h2 {
-  font-size: 1rem;
-  color: #7effd4;
-  margin-bottom: 0.8rem;
-}
-
-#listing-info p {
-  font-size: 0.88rem;
+.sell-form h4 {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  color: var(--accent-alt);
+  letter-spacing: 0.08em;
   margin-bottom: 0.6rem;
 }
 
-/* ─── Status bar ─────────────────────────────────────────────────────────────── */
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.form-row label {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.form-row input {
+  width: 100px;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-dim);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  border-radius: 4px;
+}
+
+.form-row input:focus {
+  outline: none;
+  border-color: var(--accent-alt);
+}
+
+.btn-action {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--accent);
+  background: rgba(46, 232, 197, 0.06);
+  color: var(--accent);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.btn-action:hover {
+  background: rgba(46, 232, 197, 0.15);
+  box-shadow: 0 0 12px rgba(46, 232, 197, 0.15);
+}
+
+.btn-sell {
+  width: 100%;
+  padding: 0.6rem;
+  margin-top: 0.5rem;
+  border-color: var(--accent-alt);
+  color: var(--accent-alt);
+  background: rgba(0, 212, 255, 0.05);
+}
+
+.btn-sell:hover {
+  background: rgba(0, 212, 255, 0.12);
+}
+
+.btn-buy {
+  border-color: var(--accent);
+  color: var(--bg-deep);
+  background: var(--accent);
+  font-weight: 700;
+}
+
+.btn-buy:hover {
+  box-shadow: 0 0 15px rgba(46, 232, 197, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-small {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.7rem;
+}
+
+/* ─── Global Market Section ────────────────────────────────────────────────── */
+#global-market-section {
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--border-dim);
+  padding-top: 1.5rem;
+}
+
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+  min-height: 100px;
+}
+
+.market-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-dim);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+
+.market-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-4px);
+  box-shadow: 0 5px 20px rgba(46, 232, 197, 0.15);
+}
+
+.market-seller-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  background: rgba(46, 232, 197, 0.05);
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.market-seller-avatar {
+  font-size: 1.2rem;
+}
+
+.market-seller-name {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.market-item-info {
+  padding: 1rem 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.market-item-icon {
+  font-size: 2.5rem;
+  filter: drop-shadow(0 2px 5px rgba(46, 232, 197, 0.2));
+}
+
+.market-item-details {
+  flex: 1;
+}
+
+.market-item-name {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.market-item-pack {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 0.3rem;
+}
+
+.market-price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0.8rem;
+  background: rgba(13, 10, 7, 0.5);
+  border-top: 1px solid var(--border-dim);
+  margin-top: auto;
+}
+
+.market-price-label {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
+.market-price-value {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.market-card .btn-buy {
+  padding: 0.4rem 1rem;
+  font-size: 0.75rem;
+}
+
+/* ─── Status Bar ───────────────────────────────────────────────────────────── */
 #status-bar {
-  max-width: 600px;
-  margin: 0 auto;
-  text-align: center;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 2rem;
+  background: rgba(3, 6, 13, 0.92);
+  border-top: 1px solid var(--border-dim);
+  backdrop-filter: blur(8px);
+}
+
+.status-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 0.4
+  }
+
+  50% {
+    opacity: 1
+  }
 }
 
 #status-msg {
-  font-size: 0.85rem;
-  color: #7effd4;
-  min-height: 1.2em;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
 }
 
-/* ─── Utility ────────────────────────────────────────────────────────────────── */
 .hidden {
   display: none !important;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-deep);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-dim);
+  border-radius: 3px;
+}
+
+@media (max-width:768px) {
+  header {
+    flex-direction: column;
+    gap: 0.6rem;
+    text-align: center;
+  }
+
+  main {
+    padding: 1rem;
+  }
+
+  .detail-panel {
+    width: 100%;
+  }
+
+  .inventory-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+
+  .player-cards {
+    flex-direction: column;
+    align-items: center;
+  }
 }

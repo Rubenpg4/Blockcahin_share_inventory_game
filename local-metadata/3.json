@@ -1,0 +1,53 @@
+{
+    "name": "Nebula Core / Phoenix Feather",
+    "description": "A rare consumable that restores vital energy across all dimensions.",
+    "image": "",
+    "token_id": 3,
+    "attributes": [
+        {
+            "trait_type": "power",
+            "value": 40,
+            "display_type": "number",
+            "max_value": 100,
+            "immutable": true
+        },
+        {
+            "trait_type": "rarity",
+            "value": "Common",
+            "immutable": true
+        },
+        {
+            "trait_type": "durability",
+            "value": 100,
+            "display_type": "number",
+            "max_value": 100,
+            "immutable": true
+        },
+        {
+            "trait_type": "element",
+            "value": "Fire",
+            "immutable": true
+        },
+        {
+            "trait_type": "asset_type",
+            "value": "Consumable",
+            "immutable": true
+        },
+        {
+            "trait_type": "game_a_skin",
+            "value": "Nebula Core"
+        },
+        {
+            "trait_type": "game_b_skin",
+            "value": "Phoenix Feather"
+        },
+        {
+            "trait_type": "game_a_icon",
+            "value": "🔮"
+        },
+        {
+            "trait_type": "game_b_icon",
+            "value": "🪶"
+        }
+    ]
+}

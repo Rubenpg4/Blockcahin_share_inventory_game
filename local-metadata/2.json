@@ -1,0 +1,53 @@
+{
+    "name": "Quantum Shield / Dragon Scale Armor",
+    "description": "An impenetrable barrier that shifts form between realities.",
+    "image": "",
+    "token_id": 2,
+    "attributes": [
+        {
+            "trait_type": "power",
+            "value": 60,
+            "display_type": "number",
+            "max_value": 100,
+            "immutable": true
+        },
+        {
+            "trait_type": "rarity",
+            "value": "Epic",
+            "immutable": true
+        },
+        {
+            "trait_type": "durability",
+            "value": 95,
+            "display_type": "number",
+            "max_value": 100,
+            "immutable": true
+        },
+        {
+            "trait_type": "element",
+            "value": "Quantum",
+            "immutable": true
+        },
+        {
+            "trait_type": "asset_type",
+            "value": "Armor",
+            "immutable": true
+        },
+        {
+            "trait_type": "game_a_skin",
+            "value": "Quantum Shield"
+        },
+        {
+            "trait_type": "game_b_skin",
+            "value": "Dragon Scale Armor"
+        },
+        {
+            "trait_type": "game_a_icon",
+            "value": "🛡️"
+        },
+        {
+            "trait_type": "game_b_icon",
+            "value": "🐉"
+        }
+    ]
+}
