@@ -158,13 +158,37 @@ const CONFIG = {
 
 #### PASO 4 — Configura MetaMask para Hardhat Local
 
+**4.1 — Añadir la red Hardhat Local**
+
+En MetaMask: `··· → Configuración → Redes → Añadir red → Añadir red manualmente`
+
 | Campo | Valor |
 |---|---|
-| RPC URL | `http://127.0.0.1:8545` |
-| Chain ID | `31337` |
+| Nombre de la red | `Hardhat Local` |
+| URL RPC nueva | `http://127.0.0.1:8545` |
+| ID de cadena | `31337` |
 | Símbolo de moneda | `ETH` |
+| URL explorador | *(dejar vacío)* |
 
-Importa la clave privada del **Seller** (la Terminal A del nodo la muestra al arrancar).
+**4.2 — Importar la cuenta Seller** (la que tiene los tokens y el listado activo)
+
+En MetaMask: `Icono cuenta → Añadir cuenta → Importar cuenta → Clave privada`
+
+```
+Clave privada: 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+Dirección:     0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+```
+
+> Estas claves son públicas y conocidas — solo funcionan en la red local de Hardhat.
+
+**4.3 — (Opcional) Importar cuenta Buyer** para probar la compra desde otra cuenta
+
+```
+Clave privada: 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
+Dirección:     0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
+```
+
+> ⚠️ **Si reinicias el nodo y las transacciones fallan:** ve a MetaMask → Configuración → Avanzado → **Limpiar datos de actividad** para resetear el nonce.
 
 #### PASO 5 — Lanza los frontends en dos pestañas
 
