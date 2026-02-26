@@ -11,9 +11,9 @@
 1. [Qué es Blockchain y Por Qué Importa Aquí](#1-qué-es-blockchain-y-por-qué-importa-aquí)
 2. [Cómo Interviene Blockchain en Cada Parte del Proyecto](#2-cómo-interviene-blockchain-en-cada-parte-del-proyecto)
 3. [Los Smart Contracts: El Corazón de Todo](#3-los-smart-contracts-el-corazón-de-todo)
-4. [Profundidad en el Contrato EAIProject](#4-profundidad-en-el-contrato-eaiproject)
+4. [Los Tres Contratos en Profundidad](#4-los-tres-contratos-en-profundidad)
 5. [Posibilidades que Abren los Smart Contracts](#5-posibilidades-que-abren-los-smart-contracts)
-6. [El Estándar ERC-1155: Por Qué se Eligió Este y No Otro](#6-el-estándar-erc-1155-por-qué-se-eligió-este-y-no-otro)
+6. [Los Estándares de Token: Por Qué Cada Uno Tiene su Rol](#6-los-estándares-de-token-por-qué-cada-uno-tiene-su-rol)
 7. [El Valor Real que Aporta Blockchain al Proyecto](#7-el-valor-real-que-aporta-blockchain-al-proyecto)
 8. [El Proyecto Sin Blockchain: Una Comparativa Exhaustiva](#8-el-proyecto-sin-blockchain-una-comparativa-exhaustiva)
 9. [Desventajas y Desafíos de Usar Blockchain](#9-desventajas-y-desafíos-de-usar-blockchain)
@@ -77,11 +77,22 @@ Cuando el Jugador B compra el Enchanted Bow al Jugador A, la secuencia es:
 
 No hay ningún momento en que un humano revise o apruebe la transacción. No hay ninguna empresa intermediaria que pueda bloquearla. Es código ejecutándose en una máquina global sin dueño.
 
-### En el Sistema de Pagos
+### En el Sistema de Pagos y la Economía GOLD
 
-El dinero del marketplace tampoco pasa por ninguna cuenta bancaria ni pasarela de pago tradicional. Los ETH van directamente de la cartera del comprador al contrato, y del contrato a la cartera del vendedor, en un único movimiento atómico. O todo ocurre correctamente o nada ocurre: no puede darse el caso de que el dinero salga del comprador pero no llegue al vendedor.
+El sistema de pagos del proyecto está construido sobre dos piezas blockchain que trabajan juntas: el contrato **EAIGold** (ERC-20) y la integración de pagos en **EAIProject** (ERC-1155).
 
-La comisión del 2,5% que retiene el contrato tampoco pasa por ninguna cuenta bancaria del equipo de EAI. Se acumula en el propio contrato, en la blockchain, y solo puede extraerse mediante una transacción firmada por el administrador. Esta transparencia es posible porque cualquier persona puede ver el saldo del contrato en cualquier momento; es información pública.
+**La moneda del ecosistema: GOLD**
+En lugar de usar ETH directamente como medio de pago en el marketplace, el proyecto introduce una moneda propia llamada GOLD. Esto es una decisión de diseño deliberada: vincular los precios de los activos del juego al ETH los haría volátiles e impredecibles para el jugador. Con GOLD como intermediario, los precios del juego son estables en términos de la economía interna.
+
+**Cómo se obtiene GOLD**
+El jugador envía ETH al contrato EAIGold, que crea tokens GOLD al instante a un tipo de cambio fijo de 1 GOLD = 0,00058 ETH. El ETH enviado queda custodiado por el contrato; el administrador puede retirarlo cuando lo desee. Este mecanismo de "mint con ETH" es un modelo estándar en economías de juego blockchain: el operador vende moneda del juego y retiene el ETH como ingreso real.
+
+**El flujo de pago en una compra**
+Cuando un jugador compra, el dinero (en GOLD) no pasa por ninguna cuenta bancaria ni pasarela de pago. El contrato EAIProject ejecuta dos transferencias ERC-20 simultáneas en un único paso atómico: el 97,5% del GOLD total va directamente del comprador al vendedor, y el 2,5% va del comprador al propio contrato EAIProject como comisión acumulada. O todo ocurre correctamente o nada ocurre: es imposible que el GOLD salga del comprador sin que los activos lleguen al comprador, y viceversa.
+
+Para que esto sea posible, el comprador debe previamente "aprobar" al contrato EAIProject para que pueda mover sus tokens GOLD en su nombre (allowance ERC-20). Esta aprobación es otro paso blockchain, pero los frontends lo gestionan automáticamente en segundo plano: verifican si el allowance existente es suficiente antes de cada compra, y solicitan una nueva aprobación solo cuando es necesario.
+
+La comisión en GOLD acumulada solo puede extraerse mediante una transacción firmada por el administrador. Cualquier persona puede ver el saldo de comisiones del contrato en cualquier momento; es información pública en la blockchain.
 
 ---
 
@@ -128,11 +139,26 @@ A diferencia de un servidor web, un smart contract no se "apaga". Sigue existien
 
 ---
 
-## 4. Profundidad en el Contrato EAIProject
+## 4. Los Tres Contratos en Profundidad
 
-### La Arquitectura de Herencia: Construir sobre Hombros de Gigantes
+### Tres Contratos, Una Economía
 
-El contrato EAIProject no parte de cero. Hereda de cuatro contratos base de la librería OpenZeppelin, una de las colecciones de contratos más auditadas y utilizadas del ecosistema Ethereum. Esta herencia no es solo reutilización de código: es una declaración de que el contrato EAIProject respeta los estándares establecidos y se beneficia de años de auditorías de seguridad.
+El proyecto EAI está compuesto por **tres contratos inteligentes** que se complementan mutuamente. Todos comparten la misma moneda (tokens GOLD del contrato EAIGold), pero cada uno gestiona un tipo de activo diferente con sus propias reglas y garantías.
+
+**EAIGold** — La caja de conversión ETH → GOLD
+Hereda de ERC20 y Ownable de OpenZeppelin. Es el contrato más simple: su única función activa es `mintGold()`, que acepta ETH del usuario, calcula cuántos GOLD corresponden al tipo de cambio fijo (1 GOLD = 0,00058 ETH) y los acuña directamente en la cartera del comprador. También gestiona el retiro del ETH acumulado, que solo el propietario puede extraer.
+
+**EAIProject** — El inventario semi-fungible y su marketplace
+Es el contrato que gestiona los ítems del juego (tokens ERC-1155): múltiples tipos de activos, de los que pueden existir varias unidades repartidas entre los jugadores. Conoce la dirección del contrato EAIGold desde su despliegue (se le pasa como parámetro en el constructor) y lo usa para ejecutar todos los movimientos de GOLD del marketplace.
+
+**EAINFT** — Las reliquias únicas y su marketplace
+Es el tercer contrato del ecosistema. Gestiona las reliquias NFT (tokens ERC-721): activos absolutamente únicos de los que existe exactamente una unidad en toda la blockchain. También conoce la dirección de EAIGold desde su despliegue y usa el mismo mecanismo de allowance ERC-20 para que los compradores paguen en GOLD.
+
+### La Arquitectura de Herencia de los Contratos
+
+Ninguno de los contratos parte de cero: todos heredan de contratos base de OpenZeppelin que aportan funcionalidades probadas y auditadas.
+
+**EAIProject** hereda de cuatro bases:
 
 ```
 EAIProject
@@ -142,9 +168,20 @@ EAIProject
 └── ReentrancyGuard → Añade protección contra el ataque de reentrada
 ```
 
-Cada uno de estos componentes aporta una capa de funcionalidad probada. El desarrollador solo necesitó añadir la lógica específica del marketplace y la gestión de metadatos.
+**EAINFT** hereda de cinco bases:
 
-### El Estado del Contrato: Qué Guarda en la Blockchain
+```
+EAINFT
+├── ERC721           → Define qué es un token único (NFT) y cómo se transfiere
+├── ERC721URIStorage → Permite guardar una URI de metadatos por cada token individual
+├── Ownable          → Añade un propietario único con privilegios administrativos
+├── ReentrancyGuard  → Añade protección contra el ataque de reentrada
+└── IERC20           → Interfaz para interactuar con EAIGold y mover GOLD en compras
+```
+
+La diferencia clave entre la herencia de EAIProject y EAINFT refleja sus naturalezas distintas: EAIProject usa `AccessControl` (con roles granulares como MINTER_ROLE y ADMIN_ROLE), mientras que EAINFT usa `Ownable` (un único propietario con todos los privilegios de acuñación). Esto es coherente: los activos semi-fungibles del inventario pueden necesitar varios acuñadores; las reliquias únicas solo las crea el administrador principal.
+
+### El Estado del Contrato EAIProject: Qué Guarda en la Blockchain
 
 El contrato mantiene varios tipos de información persistente en la blockchain. Esta información vive en la cadena para siempre y cambia con cada transacción que interactúa con el contrato.
 
@@ -154,11 +191,14 @@ Un mapeo que conecta cada dirección con sus balances de cada tipo de token. Es 
 **Los URIs de Metadatos:**
 Por cada tipo de token que existe, el contrato guarda una referencia (una URL) al archivo JSON que describe ese token. Esta referencia es lo que los frontends usan para saber cómo llamar al activo y qué estadísticas tiene. En producción apuntaría a IPFS; en desarrollo local apunta al servidor HTTP del puerto 3333.
 
-**El Registro del Marketplace (Listings):**
-Por cada vendedor y por cada tipo de token, el contrato guarda si hay un listado activo, cuántas unidades están a la venta y a qué precio. Este es el mercado global que todos los jugadores ven, independientemente del juego que usen.
+**La Referencia al Contrato GOLD:**
+EAIProject almacena la dirección del contrato EAIGold. Esta referencia es inmutable una vez desplegado el contrato. Es el "número de cuenta" que EAIProject usa para ordenar al contrato EAIGold que mueva tokens GOLD en cada transacción.
 
-**Las Comisiones Acumuladas:**
-Un contador que va sumando la comisión del 2,5% de cada venta. Solo el administrador puede vaciarlo. Este dato es perfectamente auditado: cualquiera puede ver cuánto ha acumulado el contrato y cuánto ha retirado el administrador.
+**El Registro del Marketplace (Listings):**
+Por cada vendedor y por cada tipo de token, el contrato guarda si hay un listado activo, cuántas unidades están a la venta y a qué precio **en GOLD**. Este es el mercado global que todos los jugadores ven, independientemente del juego que usen.
+
+**Las Comisiones Acumuladas (en GOLD):**
+Un contador que va sumando el 2,5% de GOLD de cada venta. Solo el administrador puede vaciarlo, y lo recibe en tokens GOLD (no en ETH). Este dato es perfectamente auditado: cualquiera puede ver cuánto ha acumulado el contrato y cuánto ha retirado el administrador.
 
 **El Índice de Listados Activos:**
 Una lista de todos los pares vendedor-token que tienen o han tenido un listado. Se usa para poder devolver todos los listados activos de una sola consulta, ya que la blockchain no tiene capacidad de búsqueda como una base de datos relacional.
@@ -184,22 +224,23 @@ Nótese que los tokens no se transfieren al contrato en este momento. El vendedo
 Permite al vendedor retirar su oferta. Solo puede cancelar sus propios listados. Una vez cancelado, el registro queda inactivo y los compradores ya no pueden comprar esas unidades.
 
 **Comprar (BuyItem)**
-Esta es la función más compleja y crítica. Cuando un comprador la invoca, debe enviar exactamente el dinero correspondiente al precio. El contrato entonces ejecuta en un solo paso atómico:
+Esta es la función más compleja y crítica. Ya no es una función `payable` (que recibe ETH directamente), sino que opera completamente con tokens GOLD a través del contrato EAIGold. El comprador debe haber aprobado previamente un allowance de GOLD suficiente para el contrato EAIProject. Cuando se invoca, el contrato ejecuta en un solo paso atómico:
 - Verifica que el listado está activo
 - Verifica que hay suficientes unidades
-- Verifica que el dinero enviado es exactamente el correcto
-- Transfiere los tokens del vendedor al comprador
-- Calcula y retiene la comisión
-- Envía el dinero (menos comisión) al vendedor
-- Actualiza el listado
+- Calcula el precio total en GOLD
+- Actualiza el listado (reduciendo la cantidad o desactivándolo)
+- Calcula la comisión del 2,5% en GOLD
+- Transfiere el 97,5% de GOLD del comprador al vendedor (vía EAIGold.transferFrom)
+- Transfiere el 2,5% de GOLD del comprador al propio contrato como comisión (vía EAIGold.transferFrom)
+- Transfiere los tokens ERC-1155 del vendedor al comprador
 
-Si cualquier verificación falla, toda la operación se revierte como si nunca hubiera pasado. No puede quedar el sistema en un estado donde el dinero haya salido pero los tokens no hayan llegado.
+Si cualquier verificación falla, toda la operación se revierte como si nunca hubiera pasado. No puede quedar el sistema en un estado donde el GOLD haya salido pero los tokens no hayan llegado.
 
 **Ver Todos los Listados (GetAllActiveListings)**
 Una función de consulta que devuelve todos los listados activos del marketplace. Los frontends la llaman al arrancar y cada vez que reciben un evento de nueva venta o compra. Es pública y gratuita (sin gas).
 
 **Retirar Comisiones (WithdrawFees)**
-Solo el administrador puede invocarla. Transfiere el total de comisiones acumuladas a la dirección que el administrador indique. Está protegida contra ataques de reentrada.
+Solo el administrador puede invocarla. Transfiere el total de comisiones acumuladas en GOLD a la dirección que el administrador indique, usando EAIGold.transfer. Está protegida contra ataques de reentrada.
 
 **Cambiar Comisión (SetMarketFee)**
 El administrador puede ajustar el porcentaje de comisión, pero hay un límite máximo del 10% codificado que nunca puede superarse. Esto protege a los usuarios: aunque el administrador quiera abusar, el propio contrato le impone un techo.
@@ -210,15 +251,25 @@ Los eventos son uno de los mecanismos más importantes y elegantes de los smart 
 
 En el proyecto EAI, los frontends están suscritos a todos los eventos del contrato. Cuando el contrato emite un evento de "nuevo listado", todos los jugadores conectados ven aparecer automáticamente el nuevo artículo en el marketplace, sin necesidad de recargar la página. Cuando se emite un evento de "venta completada", el inventario del comprador se actualiza al instante.
 
-Los eventos del contrato son:
+Los eventos del contrato EAIProject son:
 
-- **TokenMinted:** Se acuña un nuevo token. Los frontends podrían usarlo para notificar a los jugadores que han recibido nuevos activos.
-- **ItemListed:** Alguien pone algo a la venta. Todos los frontends actualizan el marketplace.
-- **ItemSold:** Se completa una compra. El comprador actualiza su inventario y el vendedor ve su saldo incrementado.
-- **ListingCancelled:** Se retira una oferta del mercado. El marketplace se actualiza para reflejar que ese artículo ya no está disponible.
-- **FeesWithdrawn:** El administrador retira comisiones. Queda registrado permanentemente cuándo y cuánto se retiró, con total transparencia.
+- **TokenMinted:** Se acuña un nuevo token ERC-1155. Los frontends pueden notificar al jugador que ha recibido nuevos activos.
+- **ItemListed:** Alguien pone ítems semi-fungibles a la venta. Todos los frontends actualizan el marketplace.
+- **ItemSold:** Se completa una compra de ítem ERC-1155. El comprador actualiza su inventario y el vendedor ve su GOLD aumentar.
+- **ListingCancelled:** Se retira una oferta de ítems del mercado.
+- **FeesWithdrawn:** El administrador retira comisiones de EAIProject en GOLD.
 
-Esta arquitectura de eventos hace que el sistema sea **reactivo**: los juegos no necesitan preguntar constantemente al contrato "¿hay algo nuevo?" (polling). El contrato les avisa cuando hay novedades. Es más eficiente, más rápido y produce una experiencia de usuario más fluida.
+Los eventos del contrato EAINFT son:
+
+- **RelicMinted:** Se crea una nueva reliquia NFT. Indica quién la recibe y cuál es su URI de metadatos.
+- **NFTListedForSale:** Un propietario pone su reliquia a la venta en GOLD. El marketplace de reliquias se actualiza en todos los juegos.
+- **NFTSold:** Una reliquia cambia de propietario. El comprador actualiza su inventario (recibe la reliquia) y el vendedor ve su GOLD aumentar. A diferencia de la venta de ítems ERC-1155, aquí no hay "cantidad": el NFT cambia de manos completamente.
+- **NFTListingCancelled:** El propietario retira su reliquia del mercado.
+- **FeesWithdrawn:** El administrador retira las comisiones acumuladas de EAINFT en GOLD.
+
+La separación de eventos por contrato es importante: ambos tipos de marketplace (ítems y reliquias) generan eventos distintos que los frontends escuchan de forma independiente, permitiendo actualizar la sección correcta de la UI cuando ocurre cada tipo de evento.
+
+Esta arquitectura de eventos hace que el sistema sea **reactivo**: los juegos no necesitan preguntar constantemente al contrato "¿hay algo nuevo?" (polling). Los contratos avisan cuando hay novedades. Es más eficiente, más rápido y produce una experiencia de usuario más fluida.
 
 ---
 
@@ -284,43 +335,46 @@ Los metadatos del proyecto están almacenados off-chain (en IPFS o en el servido
 
 ---
 
-## 6. El Estándar ERC-1155: Por Qué se Eligió Este y No Otro
+## 6. Los Estándares de Token: Por Qué Cada Uno Tiene su Rol
 
-Para entender por qué ERC-1155 es la elección correcta para este proyecto, hay que entender el panorama de estándares de tokens en Ethereum y qué ofrece cada uno.
+El proyecto EAI usa los tres estándares de tokens más importantes del ecosistema Ethereum. Entender por qué se eligió cada uno para su función ayuda a comprender la arquitectura completa del sistema.
 
-### ERC-20: El Token Fungible
+### ERC-20: El Token Fungible — Ideal para Moneda
 
-ERC-20 fue el primer estándar de tokens en Ethereum y sigue siendo el más usado. Un token ERC-20 es perfectamente fungible: cada unidad es idéntica a las demás, como el dinero. Si tienes 10 ETH, da igual cuáles 10 ETH exactos tienes porque todos valen lo mismo.
+ERC-20 fue el primer estándar de tokens en Ethereum y sigue siendo el más usado. Un token ERC-20 es perfectamente fungible: cada unidad es idéntica a las demás, como el dinero. Tu billete de 10 euros y mi billete de 10 euros valen exactamente lo mismo.
 
-Para un juego, ERC-20 podría usarse como moneda in-game (una "moneda de oro" del juego), pero no sirve para representar activos únicos o semi-únicos porque no distingue entre diferentes tipos de ítems.
+**Por qué se usa para EAIGold:** Una moneda de intercambio requiere fungibilidad total. Si cada token GOLD fuera distinto (como un NFT), no habría forma de calcular precios ni sumar balances. El ERC-20 hace que 1 GOLD siempre valga lo mismo que cualquier otro GOLD, permitiendo un sistema de precios coherente. Es el estándar correcto para la divisa del ecosistema.
 
-**Por qué no se usó en EAI:** Un juego necesita distinguir entre diferentes tipos de activos (una espada, un escudo, una poción), lo cual ERC-20 no puede hacer por sí solo.
+### ERC-721: El Token No Fungible (NFT) — Ideal para Objetos Únicos
 
-### ERC-721: El Token No Fungible (NFT)
+ERC-721 introdujo los NFTs tal como los conocemos popularmente. Cada token ERC-721 es completamente único y tiene un ID propio que lo distingue de todos los demás. No hay dos tokens iguales en un contrato ERC-721; existe exactamente una unidad de cada ID.
 
-ERC-721 introdujo los NFTs tal como los conocemos popularmente. Cada token ERC-721 es completamente único y tiene un ID propio que lo distingue de todos los demás. El token #1 y el token #2 son objetos completamente distintos aunque sean del mismo contrato.
+Esto es ideal para coleccionables donde cada pieza es única (arte digital, certificados de propiedad, objetos legendarios únicos), pero tiene un problema grave para los ítems comunes de inventario: si un jugador tiene 10 pociones de curación, necesitarías 10 tokens ERC-721 distintos, uno por cada poción. Las transacciones serían enormemente costosas y engorrosas.
 
-Esto es ideal para coleccionables donde cada pieza es única (arte digital, certificados de propiedad inmobiliaria), pero tiene un problema grave para los videojuegos: si un jugador tiene 1.000 pociones de curación, necesitarías 1.000 tokens ERC-721 distintos, uno por cada poción. Las transacciones serían enormemente costosas y engorrosas.
+**Por qué se usa para EAINFT:** Las reliquias del ecosistema son conceptualmente únicas. La "Stellar Core Fragment" es un artefacto singular que solo puede pertenecer a un jugador en cada momento. Su unicidad es la propuesta de valor. ERC-721 garantiza esta propiedad matemáticamente: el contrato no puede crear un segundo token con el mismo ID. No es posible falsificar la unicidad.
 
-**Por qué no se usó en EAI:** Los activos del juego son semi-fungibles. Todos los Token #1 (Plasma Rifle / Enchanted Bow) son idénticos entre sí, y tiene sentido que un jugador pueda tener 10 unidades. ERC-721 no maneja esto eficientemente.
+La diferencia crítica con ERC-1155 en la práctica es que aquí no existe el concepto de "cantidad". No puedes comprar "2 unidades del NFT #100" porque solo existe una. Cuando se transfiere, el propietario anterior lo pierde completamente.
 
-### ERC-1155: El Mejor de Ambos Mundos
+### ERC-1155: El Semi-Fungible — El Mejor de Ambos Mundos para Inventarios
 
-ERC-1155 fue diseñado específicamente para superar las limitaciones de ERC-20 y ERC-721. En un único contrato ERC-1155 pueden coexistir:
+ERC-1155 fue diseñado específicamente para superar las limitaciones de ERC-20 y ERC-721. En un único contrato ERC-1155 pueden coexistir múltiples tipos de tokens, cada uno con su propio supply. El inventario de un jugador en EAI es exactamente esto: tiene 10 unidades del Token #1, 5 unidades del Token #4, y 1 unidad del Token #6. ERC-1155 gestiona todo en un único contrato.
 
-- **Tokens fungibles** (como monedas, donde todas las unidades son iguales)
-- **Tokens semi-fungibles** (como los activos de EAI: múltiples unidades del mismo tipo, pero tipos distintos entre sí)
-- **Tokens no fungibles** (únicos, donde existe exactamente 1 unidad)
+**Por qué se usa para EAIProject:** Los ítems del juego son naturalmente replicables. Una Plasma Rifle puede existir en 20 copias repartidas entre los jugadores; todos son idénticos y perfectamente intercambiables. No tiene sentido que sean únicos como los NFTs. ERC-1155 refleja la naturaleza real de los objetos de un videojuego: recursos en cantidades variables, libremente intercambiables.
 
-El inventario de un jugador en EAI es exactamente esto: tiene 10 unidades del Token #1, 5 unidades del Token #4, y 1 unidad del Token #6. ERC-1155 gestiona todo esto en un único contrato con una única consulta.
+**Ventajas adicionales de ERC-1155 para el inventario:**
 
-**Ventajas adicionales de ERC-1155:**
+**Transferencias en lote:** Se pueden transferir múltiples tipos de tokens en una sola transacción. Si un jugador quiere intercambiar 3 espadas y 2 escudos a la vez, es una sola transacción. Con ERC-721 serían 5 transacciones separadas.
 
-**Transferencias en lote:** Se pueden transferir múltiples tipos de tokens en una sola transacción. Si un jugador quiere intercambiar 3 espadas y 2 escudos de una vez, es una sola transacción. Con ERC-721 serían 5 transacciones separadas, cinco veces más caro.
+**Supply tracking con ERC1155Supply:** La extensión añade la capacidad de saber cuántos tokens de cada tipo existen en total, útil para crear activos con suministro limitado y verificable.
 
-**Menor coste de despliegue:** Un solo contrato gestiona todos los tipos de activos. Con ERC-721 puro, cada tipo de activo podría requerir su propio contrato.
+### La Interacción entre los Tres Estándares
 
-**Supply tracking con ERC1155Supply:** La extensión usada en el proyecto añade la capacidad de saber cuántos tokens de cada tipo existen en total. Esto es útil para crear activos con suministro limitado (por ejemplo, que solo existan 100 unidades del Token Legendary #6 en todo el ecosistema).
+Lo más notable del proyecto es que los tres estándares se usan **en conjunto en cada operación económica**:
+
+- **Comprar un ítem ERC-1155:** EAIProject ordena a EAIGold (ERC-20) que mueva GOLD del comprador al vendedor y al fondo de comisiones, mientras simultáneamente transfiere las unidades de ítem al comprador.
+- **Comprar una reliquia ERC-721:** EAINFT ordena a EAIGold (ERC-20) que mueva GOLD del comprador al vendedor y al fondo de comisiones, mientras simultáneamente transfiere la propiedad del NFT al comprador.
+
+En ambos casos, una sola transacción blockchain hace que todo ocurra de forma atómica: o el GOLD se mueve Y el activo se transfiere, o ninguna de las dos cosas ocurre. La blockchain garantiza esta atomicidad sin necesidad de ningún servidor o intermediario.
 
 ---
 
@@ -440,9 +494,9 @@ El marketplace requeriría una infraestructura compleja:
 Y fundamentalmente: los jugadores no podrían comerciar con dinero real de forma directa. Tendrían que usar moneda del juego, que no tiene valor fuera del juego.
 
 **Con blockchain:**
-El marketplace es simplemente código en el contrato. No hay pasarela de pago, no hay intermediarios financieros, no hay cuentas bancarias. Los ETH van directamente de comprador a vendedor. El contrato toma su 2,5% automáticamente. Los activos tienen valor económico real porque se intercambian por ETH real.
+El marketplace opera completamente con tokens GOLD, una moneda propia del ecosistema. Los jugadores convierten ETH a GOLD directamente en el contrato EAIGold, y ese GOLD fluye de comprador a vendedor sin intermediarios. El contrato EAIProject toma su 2,5% automáticamente. El ETH que los jugadores gastan en comprar GOLD queda custodiado por EAIGold y es el ingreso real del operador del ecosistema. Los activos tienen valor económico real porque la moneda GOLD tiene un respaldo en ETH real.
 
-**Impacto real:** En el modelo tradicional, el comercio real entre jugadores es complicado, regulado y depende de terceros. En blockchain, es nativo, automático y sin intermediarios.
+**Impacto real:** En el modelo tradicional, el comercio real entre jugadores es complicado, regulado y depende de terceros. En blockchain, toda la economía del juego —desde la emisión de moneda hasta el cobro de comisiones— es transparente, automática y sin intermediarios.
 
 ### Diferencia 4: Transparencia — Opacidad vs. Verificabilidad
 
@@ -583,17 +637,21 @@ Habiendo analizado en profundidad todos los aspectos, podemos formular con preci
 
 **1. Propiedad soberana verificable.** No es posible crear propiedad digital real sin blockchain. Cualquier sistema centralizado requiere confiar en la honestidad del operador central. Blockchain hace que la confianza sea innecesaria reemplazándola con verificabilidad matemática.
 
-**2. Interoperabilidad sin acuerdos.** La interoperabilidad entre juegos que no tienen ningún acuerdo comercial entre sí es imposible en el modelo centralizado. En blockchain, cualquier aplicación puede leer y escribir en el contrato siguiendo el estándar público, sin pedir permiso a nadie.
+**2. Unicidad garantizada sin intermediarios.** El contrato EAINFT puede garantizar que existe exactamente un token #100 en toda la blockchain, que pertenece a exactamente una dirección, y que nadie puede crear un segundo token con ese ID. Esto es imposible en un sistema centralizado sin confiar en el operador; en blockchain es una consecuencia matemática del protocolo.
 
-**3. Mercado peer-to-peer de activos con valor real.** Un mercado donde el valor transferido es real (ETH), donde no hay intermediarios, y donde las reglas no pueden cambiarse unilateralmente no es posible sin blockchain.
+**3. Interoperabilidad sin acuerdos.** La interoperabilidad entre juegos que no tienen ningún acuerdo comercial entre sí es imposible en el modelo centralizado. En blockchain, cualquier aplicación puede leer y escribir en los contratos siguiendo el estándar público, sin pedir permiso a nadie. No puede revocarse su acceso porque los contratos son públicos.
 
-**4. Persistencia independiente del creador.** Un sistema cuya existencia no depende de que el creador lo mantenga activo no es posible sin blockchain. Un contrato desplegado existe para siempre, independientemente de lo que hagan los desarrolladores.
+**4. Mercado peer-to-peer de activos con valor real.** Un mercado donde el valor transferido es real (ETH a través de GOLD), donde no hay intermediarios, y donde las reglas no pueden cambiarse unilateralmente no es posible sin blockchain.
+
+**5. Persistencia independiente del creador.** Un sistema cuya existencia no depende de que el creador lo mantenga activo no es posible sin blockchain. Los tres contratos desplegados existen para siempre, independientemente de lo que hagan los desarrolladores. Los ítems del inventario y las reliquias NFT seguirán siendo propiedad de sus dueños aunque el equipo de EAI desaparezca.
 
 ### La Reflexión Final
 
-El proyecto EAI no usa blockchain porque es tendencia o porque suena interesante. Lo usa porque el problema que resuelve —inventarios de activos digitales que pertenecen realmente al jugador y son interoperables entre juegos— solo puede resolverse correctamente con blockchain.
+El proyecto EAI no usa blockchain porque es tendencia o porque suena interesante. Lo usa porque el problema que resuelve —inventarios de activos digitales que pertenecen realmente al jugador, que son interoperables entre juegos, y donde algunos objetos son verdaderamente únicos e irrepetibles— solo puede resolverse correctamente con blockchain.
 
 Un sistema de inventarios tradicional puede replicar la apariencia de interoperabilidad, pero no puede garantizar la propiedad real, la resistencia a la censura, la transparencia de las reglas, ni la independencia del creador. Estas propiedades no son características que se añaden a un sistema; son consecuencias inevitables de la arquitectura blockchain.
+
+La combinación de tres estándares —ERC-20 para la moneda, ERC-1155 para los activos de inventario, y ERC-721 para las reliquias únicas— no es caprichosa: cada estándar resuelve exactamente el problema de su capa. No hay un estándar único que pudiera hacer bien las tres cosas. La elección deliberada de tres contratos, coordinados por la misma moneda GOLD, es lo que hace del sistema EAI una arquitectura blockchain madura y bien diseñada.
 
 En ese sentido, EAI no es un juego con blockchain añadido como decoración. Es un sistema de propiedad digital construido sobre la única infraestructura que puede garantizar esa propiedad, que resulta tener también dos interfaces de juego. La diferencia puede parecer sutil, pero es fundamental: blockchain no es la herramienta que se usó para construir el juego; es el fundamento sobre el que el concepto mismo del juego tiene sentido.
 
