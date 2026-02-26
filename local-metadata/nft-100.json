@@ -1,53 +1,58 @@
 {
-    "name": "Quantum Shield / Dragon Scale Armor",
-    "description": "An impenetrable barrier that shifts form between realities.",
+    "name": "Stellar Core Fragment / Crown of the Ancients",
+    "description": "An ancient relic pulsing with otherworldly energy. Its origin is unknown, but its power is undeniable. Only one exists in all dimensions.",
     "image": "",
-    "token_id": 2,
+    "token_id": 100,
     "attributes": [
         {
             "trait_type": "power",
-            "value": 60,
-            "display_type": "number",
-            "max_value": 100,
-            "immutable": true
-        },
-        {
-            "trait_type": "rarity",
-            "value": "Epic",
-            "immutable": true
-        },
-        {
-            "trait_type": "durability",
             "value": 95,
             "display_type": "number",
             "max_value": 100,
             "immutable": true
         },
         {
+            "trait_type": "rarity",
+            "value": "Legendary",
+            "immutable": true
+        },
+        {
+            "trait_type": "glow",
+            "value": "orange",
+            "immutable": true
+        },
+        {
+            "trait_type": "durability",
+            "value": 100,
+            "display_type": "number",
+            "max_value": 100,
+            "immutable": true
+        },
+        {
             "trait_type": "element",
-            "value": "Quantum",
+            "value": "Cosmic",
             "immutable": true
         },
         {
             "trait_type": "asset_type",
-            "value": "Armor",
+            "value": "Relic",
             "immutable": true
         },
         {
             "trait_type": "game_a_skin",
-            "value": "Quantum Shield"
+            "value": "Stellar Core Fragment"
         },
         {
             "trait_type": "game_b_skin",
-            "value": "Dragon Scale Armor"
+            "value": "Crown of the Ancients"
         },
         {
             "trait_type": "game_a_icon",
-            "value": "🛡️"
+            "value": "💎"
         },
         {
             "trait_type": "game_b_icon",
-            "value": "🖤"
+            "value": "👑"
         }
     ]
 }

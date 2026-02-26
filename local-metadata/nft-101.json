@@ -1,19 +1,24 @@
 {
-    "name": "Quantum Shield / Dragon Scale Armor",
-    "description": "An impenetrable barrier that shifts form between realities.",
+    "name": "Void Engine Shard / Scepter of Eternal Flame",
+    "description": "A fragment of an engine that once powered a vessel between dimensions. It hums with residual energy from the void.",
     "image": "",
-    "token_id": 2,
+    "token_id": 101,
     "attributes": [
         {
             "trait_type": "power",
-            "value": 60,
+            "value": 90,
             "display_type": "number",
             "max_value": 100,
             "immutable": true
         },
         {
             "trait_type": "rarity",
-            "value": "Epic",
+            "value": "Legendary",
+            "immutable": true
+        },
+        {
+            "trait_type": "glow",
+            "value": "orange",
             "immutable": true
         },
         {
@@ -25,29 +30,29 @@
         },
         {
             "trait_type": "element",
-            "value": "Quantum",
+            "value": "Void",
             "immutable": true
         },
         {
             "trait_type": "asset_type",
-            "value": "Armor",
+            "value": "Relic",
             "immutable": true
         },
         {
             "trait_type": "game_a_skin",
-            "value": "Quantum Shield"
+            "value": "Void Engine Shard"
         },
         {
             "trait_type": "game_b_skin",
-            "value": "Dragon Scale Armor"
+            "value": "Scepter of Eternal Flame"
         },
         {
             "trait_type": "game_a_icon",
-            "value": "🛡️"
+            "value": "⚡"
         },
         {
             "trait_type": "game_b_icon",
-            "value": "🖤"
+            "value": "🔥"
         }
     ]
 }

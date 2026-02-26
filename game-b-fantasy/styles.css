@@ -1000,6 +1000,79 @@ main {
   border-radius: 8px;
 }
 
+/* ─── NFT Relic Styles (ERC-721) ───────────────────────────────────────────── */
+.item-cell.nft-relic {
+  box-shadow: 0 0 15px #ff8c00;
+  border-color: #ff8c00;
+  background: linear-gradient(135deg, var(--bg-card), rgba(255, 140, 0, 0.08));
+}
+
+.item-cell.nft-relic::before {
+  background: linear-gradient(90deg, #ff8c00, #ffa500, #ff8c00);
+  opacity: 1;
+  height: 3px;
+}
+
+.item-cell.nft-relic:hover {
+  box-shadow: 0 0 25px #ff8c00, 0 6px 20px rgba(255, 140, 0, 0.3);
+  transform: translateY(-4px);
+}
+
+@keyframes nftRelicPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 15px rgba(255, 140, 0, 0.6);
+  }
+
+  50% {
+    box-shadow: 0 0 25px rgba(255, 140, 0, 0.9), 0 0 40px rgba(255, 140, 0, 0.3);
+  }
+}
+
+.item-cell.nft-relic {
+  animation: nftRelicPulse 2.5s ease-in-out infinite;
+}
+
+.nft-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: linear-gradient(135deg, #ff8c00, #ff6a00);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.5rem;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 8px rgba(255, 140, 0, 0.4);
+}
+
+.market-card.nft-relic-card {
+  border-color: rgba(255, 140, 0, 0.5);
+  box-shadow: 0 0 15px rgba(255, 140, 0, 0.2);
+  background: linear-gradient(135deg, var(--bg-card), rgba(255, 140, 0, 0.05));
+}
+
+.market-card.nft-relic-card:hover {
+  border-color: #ff8c00;
+  box-shadow: 0 0 25px rgba(255, 140, 0, 0.3), 0 5px 20px rgba(255, 140, 0, 0.15);
+}
+
+.btn-buy-nft {
+  border-color: #ff8c00 !important;
+  background: linear-gradient(135deg, #ff8c00, #ff6a00) !important;
+  color: #fff !important;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.btn-buy-nft:hover {
+  box-shadow: 0 0 15px rgba(255, 140, 0, 0.5) !important;
+}
+
 @media (max-width:768px) {
   header {
     flex-direction: column;

@@ -1,53 +1,58 @@
 {
-    "name": "Quantum Shield / Dragon Scale Armor",
-    "description": "An impenetrable barrier that shifts form between realities.",
+    "name": "Nebula Heart Crystal / Orb of the Dragon King",
+    "description": "A crystallized fragment from the heart of a dying nebula. Its facets reflect realities that have not yet come to pass.",
     "image": "",
-    "token_id": 2,
+    "token_id": 102,
     "attributes": [
         {
             "trait_type": "power",
-            "value": 60,
+            "value": 88,
             "display_type": "number",
             "max_value": 100,
             "immutable": true
         },
         {
             "trait_type": "rarity",
-            "value": "Epic",
+            "value": "Legendary",
+            "immutable": true
+        },
+        {
+            "trait_type": "glow",
+            "value": "orange",
             "immutable": true
         },
         {
             "trait_type": "durability",
-            "value": 95,
+            "value": 92,
             "display_type": "number",
             "max_value": 100,
             "immutable": true
         },
         {
             "trait_type": "element",
-            "value": "Quantum",
+            "value": "Nebula",
             "immutable": true
         },
         {
             "trait_type": "asset_type",
-            "value": "Armor",
+            "value": "Relic",
             "immutable": true
         },
         {
             "trait_type": "game_a_skin",
-            "value": "Quantum Shield"
+            "value": "Nebula Heart Crystal"
         },
         {
             "trait_type": "game_b_skin",
-            "value": "Dragon Scale Armor"
+            "value": "Orb of the Dragon King"
         },
         {
             "trait_type": "game_a_icon",
-            "value": "🛡️"
+            "value": "🌀"
         },
         {
             "trait_type": "game_b_icon",
-            "value": "🖤"
+            "value": "🐉"
         }
     ]
 }

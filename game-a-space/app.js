@@ -3,6 +3,7 @@
  * Auto-wallet login + inventory grid + friend trading.
  * NO MetaMask required — uses Hardhat's deterministic accounts directly.
  * Economy powered by GOLD (ERC-20) token.
+ * Supports ERC-1155 (shared items) + ERC-721 (unique NFT relics).
  */
 
 // ─── Configuration ────────────────────────────────────────────────────────────
@@ -10,6 +11,7 @@
 const CONFIG = {
   contractAddress: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
   goldContractAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  nftContractAddress: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
   rpcUrl: "http://127.0.0.1:8545",
   metadataBase: "http://localhost:3333/",
   maxTokenId: 6,
@@ -67,12 +69,28 @@ const GOLD_ABI = [
   "function decimals() view returns (uint8)"
 ];
 
+const NFT_ABI = [
+  "function ownerOf(uint256 tokenId) view returns (address)",
+  "function tokenURI(uint256 tokenId) view returns (string)",
+  "function getAllMintedIds() view returns (uint256[])",
+  "function approve(address to, uint256 tokenId)",
+  "function getApproved(uint256 tokenId) view returns (address)",
+  "function setApprovalForAll(address operator, bool approved)",
+  "function isApprovedForAll(address owner, address operator) view returns (bool)",
+  "function listNFTForSale(uint256 tokenId, uint256 price)",
+  "function buyNFT(uint256 tokenId)",
+  "function cancelNFTListing(uint256 tokenId)",
+  "function nftListings(uint256 tokenId) view returns (uint256 price, address seller, bool active)",
+  "function getAllActiveNFTListings() view returns (uint256[] tokenIds, address[] sellers, uint256[] prices)"
+];
+
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let provider = null;
 let wallet = null;
 let contract = null;
 let goldContract = null;
+let nftContract = null;
 let currentPlayer = null;
 let inventoryCache = [];
 let selectedItem = null;
@@ -114,6 +132,7 @@ async function loginAsPlayer(playerId) {
     wallet = new ethers.Wallet(currentPlayer.privateKey, provider);
     contract = new ethers.Contract(CONFIG.contractAddress, EAI_ABI, wallet);
     goldContract = new ethers.Contract(CONFIG.goldContractAddress, GOLD_ABI, wallet);
+    nftContract = new ethers.Contract(CONFIG.nftContractAddress, NFT_ABI, wallet);
 
     // Listen to blockchain events for reactive UI
     contract.removeAllListeners();
@@ -126,6 +145,17 @@ async function loginAsPlayer(playerId) {
     });
     contract.on("ItemSold", () => { updateBalance(); loadInventory(); loadGlobalMarket(); });
     contract.on("ListingCancelled", () => { loadGlobalMarket(); });
+
+    // NFT events
+    nftContract.removeAllListeners();
+    nftContract.on("NFTListedForSale", (seller) => {
+      loadGlobalMarket();
+      if (seller !== currentPlayer.address) {
+        showToast("🔥 A unique relic appeared in the market!");
+      }
+    });
+    nftContract.on("NFTSold", () => { updateBalance(); loadInventory(); loadGlobalMarket(); });
+    nftContract.on("NFTListingCancelled", () => { loadGlobalMarket(); });
 
     // Update UI
     hide("login-screen");
@@ -149,12 +179,14 @@ async function loginAsPlayer(playerId) {
 
 $("logout-btn").addEventListener("click", () => {
   if (contract) contract.removeAllListeners();
+  if (nftContract) nftContract.removeAllListeners();
   hide("game-screen");
   show("login-screen");
   currentPlayer = null;
   wallet = null;
   contract = null;
   goldContract = null;
+  nftContract = null;
   inventoryCache = [];
   selectedItem = null;
   const panel = $("detail-panel");
@@ -254,19 +286,41 @@ async function loadInventory() {
   grid.innerHTML = "";
   let itemCount = 0;
 
+  // Load ERC-1155 items
   for (let tokenId = 1; tokenId <= CONFIG.maxTokenId; tokenId++) {
     try {
       const balance = await contract.balanceOf(currentPlayer.address, tokenId);
       if (balance > 0n) {
         const metadata = await fetchMetadata(tokenId);
         if (metadata) {
-          const item = { tokenId, metadata, balance: Number(balance) };
+          const item = { tokenId, metadata, balance: Number(balance), isNFT: false };
           inventoryCache.push(item);
           grid.appendChild(createItemCell(item));
           itemCount++;
         }
       }
     } catch { /* skip */ }
+  }
+
+  // Load ERC-721 NFTs
+  try {
+    const allNftIds = await nftContract.getAllMintedIds();
+    for (const nftId of allNftIds) {
+      try {
+        const owner = await nftContract.ownerOf(nftId);
+        if (owner.toLowerCase() === currentPlayer.address.toLowerCase()) {
+          const metadata = await fetchNFTMetadata(Number(nftId));
+          if (metadata) {
+            const item = { tokenId: Number(nftId), metadata, balance: 1, isNFT: true };
+            inventoryCache.push(item);
+            grid.appendChild(createItemCell(item));
+            itemCount++;
+          }
+        }
+      } catch { /* skip */ }
+    }
+  } catch (err) {
+    console.error("Failed to load NFTs:", err);
   }
 
   if (itemCount === 0) {
@@ -284,6 +338,21 @@ async function fetchMetadata(tokenId) {
       url = uri.startsWith("ipfs://") ? CONFIG.metadataBase + tokenId + ".json" : uri;
     } catch {
       url = CONFIG.metadataBase + tokenId + ".json";
+    }
+    const res = await fetch(url);
+    if (!res.ok) throw new Error();
+    return await res.json();
+  } catch { return null; }
+}
+
+async function fetchNFTMetadata(tokenId) {
+  try {
+    let url;
+    try {
+      const uri = await nftContract.tokenURI(tokenId);
+      url = uri.startsWith("ipfs://") ? CONFIG.metadataBase + `nft-${tokenId}.json` : uri;
+    } catch {
+      url = CONFIG.metadataBase + `nft-${tokenId}.json`;
     }
     const res = await fetch(url);
     if (!res.ok) throw new Error();
@@ -309,6 +378,11 @@ function getRarity(meta) {
   return a ? a.value : "Common";
 }
 
+function hasGlow(meta) {
+  const g = (meta.attributes || []).find(a => a.trait_type === "glow");
+  return g && g.value === "orange";
+}
+
 // ─── Item cell rendering ──────────────────────────────────────────────────────
 
 function createItemCell(item, isMarket = false, sellerAddr = null) {
@@ -319,17 +393,27 @@ function createItemCell(item, isMarket = false, sellerAddr = null) {
 
   const cell = document.createElement("div");
   cell.className = `item-cell rarity-${rarity.toLowerCase()}`;
+  if (item.isNFT || hasGlow(metadata)) {
+    cell.classList.add("nft-relic");
+  }
   cell.dataset.tokenId = tokenId;
 
   let extra = "";
   if (isMarket && item.listing) {
-    const priceGold = ethers.formatEther(item.listing.pricePerUnit);
-    extra = `<span class="item-price">${priceGold} GOLD</span>
-             <button class="btn-buy" data-seller="${sellerAddr}" data-token="${tokenId}">Buy</button>`;
+    const priceGold = ethers.formatEther(item.listing.price || item.listing.pricePerUnit);
+    extra = `<span class="item-price">${priceGold} GOLD</span>`;
+    if (item.isNFT) {
+      extra += `<button class="btn-buy" data-seller="${sellerAddr}" data-token="${tokenId}">Buy NFT</button>`;
+    } else {
+      extra += `<button class="btn-buy" data-seller="${sellerAddr}" data-token="${tokenId}">Buy</button>`;
+    }
   }
+
+  const nftBadge = item.isNFT ? `<span class="nft-badge">NFT</span>` : "";
 
   cell.innerHTML = `
     <span class="item-icon">${icon}</span>
+    ${nftBadge}
     <span class="item-name">${name}</span>
     <span class="item-qty">×${balance}</span>
     <span class="item-rarity-label ${rarity.toLowerCase()}">${rarity}</span>
@@ -343,7 +427,11 @@ function createItemCell(item, isMarket = false, sellerAddr = null) {
   if (isMarket && item.listing) {
     cell.querySelector(".btn-buy")?.addEventListener("click", (e) => {
       e.stopPropagation();
-      buyMarketItem(sellerAddr, tokenId, item.listing.pricePerUnit);
+      if (item.isNFT) {
+        buyNFTItem(tokenId, item.listing.price);
+      } else {
+        buyMarketItem(sellerAddr, tokenId, item.listing.pricePerUnit);
+      }
     });
   }
 
@@ -374,7 +462,7 @@ function openDetailPanel(item) {
 
   const statsEl = $("detail-stats");
   statsEl.innerHTML = "";
-  attrs.filter(a => a.immutable && a.trait_type !== "rarity").forEach(attr => {
+  attrs.filter(a => a.immutable && a.trait_type !== "rarity" && a.trait_type !== "glow").forEach(attr => {
     const s = document.createElement("div");
     s.className = "stat";
     s.innerHTML = `<span class="stat-label">${attr.trait_type.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</span>
@@ -382,8 +470,17 @@ function openDetailPanel(item) {
     statsEl.appendChild(s);
   });
 
-  $("sell-amount").value = 1;
-  $("sell-amount").max = balance;
+  // Adjust sell form for NFT vs ERC-1155
+  const sellAmountInput = $("sell-amount");
+  if (item.isNFT) {
+    sellAmountInput.value = 1;
+    sellAmountInput.max = 1;
+    sellAmountInput.disabled = true;
+  } else {
+    sellAmountInput.value = 1;
+    sellAmountInput.max = balance;
+    sellAmountInput.disabled = false;
+  }
 
   const panel = $("detail-panel");
   panel.classList.remove("hidden");
@@ -406,16 +503,31 @@ $("list-btn").addEventListener("click", async () => {
   if (!amount || amount < 1 || !priceStr || parseFloat(priceStr) <= 0) {
     setStatus("Enter valid amount and price.", true); return;
   }
+
   try {
-    setStatus("Listing item for sale...");
-    const approved = await contract.isApprovedForAll(currentPlayer.address, CONFIG.contractAddress);
-    if (!approved) {
-      const tx0 = await contract.setApprovalForAll(CONFIG.contractAddress, true);
-      await tx0.wait();
+    if (selectedItem.isNFT) {
+      // List NFT for sale
+      setStatus("Listing relic for sale...");
+      const approved = await nftContract.isApprovedForAll(currentPlayer.address, CONFIG.nftContractAddress);
+      if (!approved) {
+        const tx0 = await nftContract.setApprovalForAll(CONFIG.nftContractAddress, true);
+        await tx0.wait();
+      }
+      const tx = await nftContract.listNFTForSale(selectedItem.tokenId, ethers.parseEther(priceStr));
+      await tx.wait();
+      setStatus(`Listed relic at ${priceStr} GOLD!`);
+    } else {
+      // List ERC-1155 for sale
+      setStatus("Listing item for sale...");
+      const approved = await contract.isApprovedForAll(currentPlayer.address, CONFIG.contractAddress);
+      if (!approved) {
+        const tx0 = await contract.setApprovalForAll(CONFIG.contractAddress, true);
+        await tx0.wait();
+      }
+      const tx = await contract.listForSale(selectedItem.tokenId, amount, ethers.parseEther(priceStr));
+      await tx.wait();
+      setStatus(`Listed ${amount} unit(s) at ${priceStr} GOLD each!`);
     }
-    const tx = await contract.listForSale(selectedItem.tokenId, amount, ethers.parseEther(priceStr));
-    await tx.wait();
-    setStatus(`Listed ${amount} unit(s) at ${priceStr} GOLD each!`);
     await updateBalance();
     await loadInventory();
   } catch (err) { setStatus(`Listing failed: ${err.message}`, true); }
@@ -432,6 +544,7 @@ async function loadGlobalMarket() {
   let found = 0;
 
   try {
+    // Load ERC-1155 listings
     const activeListings = await contract.getAllActiveListings();
 
     for (const listing of activeListings) {
@@ -474,6 +587,56 @@ async function loadGlobalMarket() {
           </div>
           <button class="btn-action btn-buy" onclick="buyMarketPack('${listing.seller}', ${tokenId}, ${amount}, '${pricePerUnitWei.toString()}')">
             ${getThemedIcon(metadata)} Buy
+          </button>
+        </div>
+      `;
+      grid.appendChild(card);
+      found++;
+    }
+
+    // Load ERC-721 NFT listings
+    const [nftTokenIds, nftSellers, nftPrices] = await nftContract.getAllActiveNFTListings();
+
+    for (let i = 0; i < nftTokenIds.length; i++) {
+      const tokenId = Number(nftTokenIds[i]);
+      const seller = nftSellers[i];
+      const price = nftPrices[i];
+
+      if (seller.toLowerCase() === currentPlayer.address.toLowerCase()) continue;
+
+      const metadata = await fetchNFTMetadata(tokenId);
+      if (!metadata) continue;
+
+      const sellerObj = PLAYERS.find(p => p.address === seller) || {
+        name: "Unknown Trader",
+        avatar: "👤",
+        address: seller
+      };
+
+      const priceGold = parseFloat(ethers.formatEther(price));
+
+      const card = document.createElement("div");
+      card.className = "market-card nft-relic-card";
+      card.innerHTML = `
+        <div class="market-seller-info">
+          <span class="market-seller-avatar">${sellerObj.avatar}</span>
+          <span class="market-seller-name">${sellerObj.name}</span>
+        </div>
+        <div class="market-item-info">
+          <div class="market-item-icon">${getThemedIcon(metadata)}</div>
+          <div class="market-item-details">
+            <div class="market-item-name">${getThemedName(metadata)} <span class="nft-badge">NFT</span></div>
+            <div class="market-item-pack">Unique Relic</div>
+            <div class="item-rarity-label legendary">Legendary</div>
+          </div>
+        </div>
+        <div class="market-price-row">
+          <div>
+            <span class="market-price-label">Price (GOLD)</span>
+            <span class="market-price-value">${priceGold.toFixed(2)}</span>
+          </div>
+          <button class="btn-action btn-buy btn-buy-nft" onclick="buyNFTFromMarket(${tokenId}, '${price.toString()}')">
+            🔥 Buy Relic
           </button>
         </div>
       `;
@@ -524,6 +687,42 @@ window.buyMarketPack = async function (seller, tokenId, packAmount, pricePerUnit
     loadGlobalMarket();
   } catch (err) {
     setStatus(`Purchase failed: ${err.message} `, true);
+  }
+}
+
+// Buy NFT from market
+window.buyNFTFromMarket = async function (tokenId, priceWei) {
+  if (!nftContract || !provider || !currentPlayer || !goldContract) return;
+  try {
+    const price = BigInt(priceWei);
+
+    // Check GOLD balance
+    const goldBal = await goldContract.balanceOf(currentPlayer.address);
+    if (goldBal < price) {
+      alert("Insufficient GOLD! You do not have enough GOLD to purchase this relic. Use 'Buy GOLD' to convert ETH.");
+      setStatus("Purchase cancelled: Insufficient GOLD.", true);
+      return;
+    }
+
+    // Check and request GOLD allowance for the NFT contract
+    const currentAllowance = await goldContract.allowance(currentPlayer.address, CONFIG.nftContractAddress);
+    if (currentAllowance < price) {
+      setStatus("Approving GOLD spend for relic...");
+      const approveTx = await goldContract.approve(CONFIG.nftContractAddress, price);
+      await approveTx.wait();
+    }
+
+    setStatus("Acquiring unique relic...");
+    const tx = await nftContract.buyNFT(tokenId);
+    await tx.wait();
+
+    setStatus(`Relic acquired! NFT #${tokenId} is now yours.`);
+    showToast(`🔥 Unique relic NFT #${tokenId} acquired!`);
+    await updateBalance();
+    await loadInventory();
+    loadGlobalMarket();
+  } catch (err) {
+    setStatus(`Purchase failed: ${err.message}`, true);
   }
 }
 

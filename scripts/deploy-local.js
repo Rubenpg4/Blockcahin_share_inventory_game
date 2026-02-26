@@ -6,7 +6,8 @@
  *   2. Terminal B: npx hardhat run scripts/deploy-local.js --network localhost
  *
  * Cada vez que lo ejecutas, genera un inventario ALEATORIO para 3 jugadores,
- * crea listings de venta al azar, y distribuye tokens GOLD.
+ * crea listings de venta al azar, distribuye tokens GOLD, y mintea 1 NFT
+ * (reliquia única ERC-721) para cada jugador.
  * Incluye metadata server en puerto 3333.
  */
 
@@ -82,17 +83,17 @@ async function main() {
 
   console.log("\n══════════════════════════════════════");
   console.log("  EAI PROJECT — RANDOM LOCAL DEPLOY");
-  console.log("  (GOLD Token Economy)");
+  console.log("  (GOLD Token Economy + NFT Relics)");
   console.log("══════════════════════════════════════");
   console.log(`Admin    : ${admin.address}`);
   players.forEach((p, i) => console.log(`${playerNames[i]} : ${p.address}`));
 
   // ── 1. Metadata server ──────────────────────────────────────────────────────
-  console.log("\n[1/7] Starting metadata server...");
+  console.log("\n[1/9] Starting metadata server...");
   await startMetadataServer();
 
   // ── 2. Deploy EAIGold (ERC-20) ──────────────────────────────────────────────
-  console.log("\n[2/7] Deploying EAIGold (ERC-20)...");
+  console.log("\n[2/9] Deploying EAIGold (ERC-20)...");
   const EAIGold = await ethers.getContractFactory("EAIGold");
   const goldContract = await EAIGold.deploy(admin.address);
   await goldContract.waitForDeployment();
@@ -100,15 +101,23 @@ async function main() {
   console.log(`      ✔ EAIGold deployed to: ${goldAddress}`);
 
   // ── 3. Deploy EAIProject (ERC-1155) ─────────────────────────────────────────
-  console.log("\n[3/7] Deploying EAIProject (ERC-1155)...");
+  console.log("\n[3/9] Deploying EAIProject (ERC-1155)...");
   const EAIProject = await ethers.getContractFactory("EAIProject");
   const contract = await EAIProject.deploy(admin.address, goldAddress);
   await contract.waitForDeployment();
   const contractAddress = await contract.getAddress();
   console.log(`      ✔ EAIProject deployed to: ${contractAddress}`);
 
-  // ── 4. Mint RANDOM tokens ───────────────────────────────────────────────────
-  console.log("\n[4/7] Minting random inventories...");
+  // ── 4. Deploy EAINFT (ERC-721) ──────────────────────────────────────────────
+  console.log("\n[4/9] Deploying EAINFT (ERC-721)...");
+  const EAINFT = await ethers.getContractFactory("EAINFT");
+  const nftContract = await EAINFT.deploy(admin.address, goldAddress);
+  await nftContract.waitForDeployment();
+  const nftAddress = await nftContract.getAddress();
+  console.log(`      ✔ EAINFT deployed to: ${nftAddress}`);
+
+  // ── 5. Mint RANDOM tokens (ERC-1155) ────────────────────────────────────────
+  console.log("\n[5/9] Minting random inventories (ERC-1155)...");
 
   // Each player gets 2-4 random token types, each with 1-15 units
   const mintPlan = []; // { playerIdx, tokenId, amount }
@@ -135,23 +144,33 @@ async function main() {
     console.log(`      ✔ ${playerNames[mint.playerIdx]}: Token #${mint.tokenId} ×${mint.amount}`);
   }
 
-  // ── 5. Approve marketplace ──────────────────────────────────────────────────
-  console.log("\n[5/7] Approving marketplace...");
+  // ── 6. Mint NFT Relics (ERC-721) ────────────────────────────────────────────
+  console.log("\n[6/9] Minting NFT relics (ERC-721)...");
+  const nftMetadata = [
+    { file: "nft-100.json", name: "Stellar Core Fragment / Crown of the Ancients" },
+    { file: "nft-101.json", name: "Void Engine Shard / Scepter of Eternal Flame" },
+    { file: "nft-102.json", name: "Nebula Heart Crystal / Orb of the Dragon King" },
+  ];
+
   for (let i = 0; i < 3; i++) {
+    const tokenURI = `${BASE_URI}${nftMetadata[i].file}`;
+    const tx = await nftContract.connect(admin).mintRelic(players[i].address, tokenURI);
+    const receipt = await tx.wait();
+    console.log(`      ✔ ${playerNames[i]}: NFT #${100 + i} — ${nftMetadata[i].name}`);
+  }
+
+  // ── 7. Approve marketplace ──────────────────────────────────────────────────
+  console.log("\n[7/9] Approving marketplace...");
+  for (let i = 0; i < 3; i++) {
+    // Approve ERC-1155 marketplace
     await contract.connect(players[i]).setApprovalForAll(contractAddress, true);
-    console.log(`      ✔ ${playerNames[i]} approved`);
+    // Approve ERC-721 marketplace (approveForAll for the NFT contract)
+    await nftContract.connect(players[i]).setApprovalForAll(nftAddress, true);
+    console.log(`      ✔ ${playerNames[i]} approved (ERC-1155 + ERC-721)`);
   }
 
-  // ── 6. Mint GOLD tokens to players ──────────────────────────────────────────
-  console.log("\n[6/8] Distributing GOLD tokens...");
-  // Each player starts with 0 GOLD, they must convert ETH via the frontend.
-  for (let i = 0; i < 3; i++) {
-    const goldBal = await goldContract.balanceOf(players[i].address);
-    console.log(`      ✔ ${playerNames[i]}: ${parseFloat(ethers.formatEther(goldBal)).toFixed(2)} GOLD`);
-  }
-
-  // ── 7. Set each player to 1 ETH ──────────────────────────────────────────────
-  console.log("\n[7/8] Setting player ETH balances to 1 ETH...");
+  // ── 8. GOLD balances / ETH setup ────────────────────────────────────────────
+  console.log("\n[8/9] Setting player ETH balances to 1 ETH...");
   const TARGET_ETH = ethers.parseEther("1");
   for (let i = 0; i < 3; i++) {
     const currentBalance = await ethers.provider.getBalance(players[i].address);
@@ -164,13 +183,14 @@ async function main() {
       await tx.wait();
     }
     const finalBalance = await ethers.provider.getBalance(players[i].address);
-    console.log(`      ✔ ${playerNames[i]}: ${ethers.formatEther(finalBalance).slice(0, 6)} ETH`);
+    const goldBal = await goldContract.balanceOf(players[i].address);
+    console.log(`      ✔ ${playerNames[i]}: ${ethers.formatEther(finalBalance).slice(0, 6)} ETH | ${parseFloat(ethers.formatEther(goldBal)).toFixed(2)} GOLD`);
   }
 
-  // ── 8. Random listings (priced in GOLD) ─────────────────────────────────────
-  console.log("\n[8/8] Creating random listings (GOLD prices)...");
+  // ── 9. Random listings (priced in GOLD) ─────────────────────────────────────
+  console.log("\n[9/9] Creating random listings (GOLD prices)...");
 
-  // Each player randomly lists 1-2 of their items
+  // Each player randomly lists 1-2 of their ERC-1155 items
   for (let pIdx = 0; pIdx < 3; pIdx++) {
     const playerMints = mintPlan.filter(m => m.playerIdx === pIdx);
     const numListings = Math.min(randInt(1, 2), playerMints.length);
@@ -192,6 +212,7 @@ async function main() {
   console.log("══════════════════════════════════════");
   console.log(`EAIGold Address  : ${goldAddress}`);
   console.log(`EAIProject Addr  : ${contractAddress}`);
+  console.log(`EAINFT Address   : ${nftAddress}`);
   console.log(`Metadata Server  : ${BASE_URI}`);
   console.log("");
 
@@ -201,13 +222,14 @@ async function main() {
       .join(", ");
     const ethBal = ethers.formatEther(await ethers.provider.getBalance(players[pIdx].address));
     const goldBal = ethers.formatEther(await goldContract.balanceOf(players[pIdx].address));
-    console.log(`  ${playerNames[pIdx]}: ${items} | ${ethBal.slice(0, 6)} ETH | ${parseFloat(goldBal).toFixed(2)} GOLD`);
+    console.log(`  ${playerNames[pIdx]}: ${items} + NFT#${100 + pIdx} | ${ethBal.slice(0, 6)} ETH | ${parseFloat(goldBal).toFixed(2)} GOLD`);
   }
 
   console.log("");
   console.log(`>>> Actualiza en ambos app.js:`);
   console.log(`    contractAddress:     "${contractAddress}"`);
   console.log(`    goldContractAddress: "${goldAddress}"`);
+  console.log(`    nftContractAddress:  "${nftAddress}"`);
   console.log(">>> NO cierres esta terminal — el metadata server debe seguir corriendo.");
   console.log("══════════════════════════════════════\n");
 }
