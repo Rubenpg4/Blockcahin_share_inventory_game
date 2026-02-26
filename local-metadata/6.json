@@ -1,0 +1,53 @@
+{
+    "name": "Stellar Helm / Crown of Thorns",
+    "description": "A legendary headpiece that grants visions of distant realms.",
+    "image": "",
+    "token_id": 6,
+    "attributes": [
+        {
+            "trait_type": "power",
+            "value": 88,
+            "display_type": "number",
+            "max_value": 100,
+            "immutable": true
+        },
+        {
+            "trait_type": "rarity",
+            "value": "Legendary",
+            "immutable": true
+        },
+        {
+            "trait_type": "durability",
+            "value": 65,
+            "display_type": "number",
+            "max_value": 100,
+            "immutable": true
+        },
+        {
+            "trait_type": "element",
+            "value": "Stellar",
+            "immutable": true
+        },
+        {
+            "trait_type": "asset_type",
+            "value": "Helmet",
+            "immutable": true
+        },
+        {
+            "trait_type": "game_a_skin",
+            "value": "Stellar Helm"
+        },
+        {
+            "trait_type": "game_b_skin",
+            "value": "Crown of Thorns"
+        },
+        {
+            "trait_type": "game_a_icon",
+            "value": "⛑️"
+        },
+        {
+            "trait_type": "game_b_icon",
+            "value": "👑"
+        }
+    ]
+}

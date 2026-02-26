@@ -1,66 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EAI — Game B: Fantasy</title>
+  <title>EAI — Fantasy Realm</title>
+  <meta name="description" content="Interoperable blockchain inventory — Fantasy Edition" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Lora:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
+
 <body>
-  <header>
-    <h1>⚔️ EAI — Fantasy Relics</h1>
-    <p class="subtitle">Interoperable Asset Ecosystem — Fantasy Edition</p>
-  </header>
+  <div class="ambient-bg"></div>
 
-  <main>
-    <section id="wallet-section">
-      <button id="connect-btn">Connect Wallet</button>
-      <p id="wallet-address" class="hidden"></p>
-    </section>
-
-    <section id="asset-lookup">
-      <h2>Look up an Asset</h2>
-      <div class="input-row">
-        <label for="token-id-input">Token ID:</label>
-        <input type="number" id="token-id-input" placeholder="e.g. 1" min="1" />
-        <button id="load-asset-btn">Load Asset</button>
+  <!-- ═══ LOGIN SCREEN ═══════════════════════════════════════════════════════ -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-box">
+      <h1 class="login-title">⚔️ FANTASY REALM</h1>
+      <p class="login-subtitle">Choose your hero to enter the guild hall</p>
+      <div class="player-cards">
+        <button class="player-card" data-player="1">
+          <span class="player-avatar">🛡️</span>
+          <span class="player-name">Knight Aldric</span>
+          <span class="player-hint">Master of arms</span>
+        </button>
+        <button class="player-card" data-player="2">
+          <span class="player-avatar">🧙</span>
+          <span class="player-name">Mage Elara</span>
+          <span class="player-hint">Arcane seeker</span>
+        </button>
+        <button class="player-card" data-player="3">
+          <span class="player-avatar">🏹</span>
+          <span class="player-name">Ranger Fenn</span>
+          <span class="player-hint">Relic hunter</span>
+        </button>
       </div>
-    </section>
+    </div>
+  </div>
 
-    <section id="asset-card" class="hidden">
-      <div class="card fantasy-theme">
-        <div class="card-badge" id="card-rarity"></div>
-        <div class="card-image">
-          <img id="asset-image" src="" alt="Asset" />
-        </div>
-        <div class="card-body">
-          <h2 id="asset-name"></h2>
-          <p id="asset-description"></p>
-          <div id="asset-stats" class="stats-grid"></div>
-          <p class="game-skin-label">Fantasy Appearance: <span id="game-skin"></span></p>
-        </div>
+  <!-- ═══ GAME SCREEN ════════════════════════════════════════════════════════ -->
+  <div id="game-screen" class="game-screen hidden">
+    <header>
+      <div class="header-left">
+        <h1>⚔️ FANTASY REALM</h1>
+        <p class="subtitle">Interoperable Asset Ecosystem</p>
       </div>
-    </section>
-
-    <section id="market-section" class="hidden">
-      <h2>Marketplace</h2>
-      <div id="listing-info" class="hidden">
-        <p>Listed: <span id="listing-amount"></span> units @ <span id="listing-price"></span> MATIC each</p>
-        <div class="input-row">
-          <label for="buy-amount">Buy:</label>
-          <input type="number" id="buy-amount" value="1" min="1" />
-          <button id="buy-btn">Buy Now</button>
+      <div class="header-right">
+        <div class="user-badge" id="user-badge">
+          <span class="user-avatar" id="user-avatar"></span>
+          <div>
+            <span class="user-name" id="user-name"></span>
+            <span class="user-addr" id="user-addr"></span>
+          </div>
+          <span class="user-balance" id="user-balance">0 ETH</span>
         </div>
+        <button id="refresh-all-btn" class="btn-action" style="margin-right: 15px;">Refresh</button>
+        <button id="logout-btn" class="btn-logout">Logout</button>
       </div>
-      <p id="no-listing-msg" class="hidden">This relic is not currently listed for sale.</p>
-    </section>
+    </header>
 
-    <section id="status-bar">
-      <p id="status-msg"></p>
-    </section>
-  </main>
+    <main>
+      <!-- ─── Inventory ───────────────────────────────────────────────────── -->
+      <section id="inventory-section">
+        <div class="section-header">
+          <h2>📜 YOUR INVENTORY</h2>
+          <span id="inventory-count" class="badge">0 relics</span>
+        </div>
+        <div id="inventory-grid" class="inventory-grid">
+          <div class="empty-inventory">
+            <p>Loading...</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─── Item Detail Panel ───────────────────────────────────────────── -->
+      <aside id="detail-panel" class="detail-panel hidden">
+        <button id="close-detail" class="btn-close">✕</button>
+        <div class="detail-content">
+          <div class="detail-icon" id="detail-icon"></div>
+          <h3 id="detail-name"></h3>
+          <span class="detail-rarity" id="detail-rarity"></span>
+          <p id="detail-description" class="detail-desc"></p>
+          <div id="detail-stats" class="detail-stats"></div>
+          <p class="detail-skin-label">Fantasy Form: <span id="detail-skin"></span></p>
+          <p class="detail-balance">Owned: <span id="detail-balance">0</span></p>
+          <div class="sell-form" id="sell-form">
+            <h4>🏪 LIST FOR SALE</h4>
+            <div class="form-row">
+              <label>Amount</label>
+              <input type="number" id="sell-amount" value="1" min="1" />
+            </div>
+            <div class="form-row">
+              <label>Price (ETH each)</label>
+              <input type="number" id="sell-price" value="0.01" min="0.001" step="0.001" />
+            </div>
+            <button id="list-btn" class="btn-action btn-sell">List for Sale</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ─── Global Market ───────────────────────────────────────────────── -->
+      <section id="global-market-section">
+        <div class="section-header">
+          <h2>🌍 THE GRAND BAZAAR</h2>
+        </div>
+        <div id="global-market-grid" class="market-grid">
+          <div class="empty-inventory">
+            <p>Scouring the realms... No active listings found.</p>
+          </div>
+        </div>
+      </section>
+
+      <footer id="status-bar">
+        <div class="status-indicator" id="status-indicator"></div>
+        <p id="status-msg">Awaiting connection</p>
+      </footer>
+    </main>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.0/dist/ethers.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
+
 </html>

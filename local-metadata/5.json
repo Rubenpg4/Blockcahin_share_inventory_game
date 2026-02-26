@@ -1,0 +1,53 @@
+{
+    "name": "Gravity Boots / Elven Greaves",
+    "description": "Footwear that defies the laws of physics and magic alike.",
+    "image": "",
+    "token_id": 5,
+    "attributes": [
+        {
+            "trait_type": "power",
+            "value": 55,
+            "display_type": "number",
+            "max_value": 100,
+            "immutable": true
+        },
+        {
+            "trait_type": "rarity",
+            "value": "Rare",
+            "immutable": true
+        },
+        {
+            "trait_type": "durability",
+            "value": 88,
+            "display_type": "number",
+            "max_value": 100,
+            "immutable": true
+        },
+        {
+            "trait_type": "element",
+            "value": "Gravity",
+            "immutable": true
+        },
+        {
+            "trait_type": "asset_type",
+            "value": "Armor",
+            "immutable": true
+        },
+        {
+            "trait_type": "game_a_skin",
+            "value": "Gravity Boots"
+        },
+        {
+            "trait_type": "game_b_skin",
+            "value": "Elven Greaves"
+        },
+        {
+            "trait_type": "game_a_icon",
+            "value": "👢"
+        },
+        {
+            "trait_type": "game_b_icon",
+            "value": "🥾"
+        }
+    ]
+}

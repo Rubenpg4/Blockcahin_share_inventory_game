@@ -1,0 +1,53 @@
+{
+    "name": "Plasma Rifle / Enchanted Bow",
+    "description": "A versatile ranged weapon that channels energy differently across dimensions.",
+    "image": "",
+    "token_id": 1,
+    "attributes": [
+        {
+            "trait_type": "power",
+            "value": 75,
+            "display_type": "number",
+            "max_value": 100,
+            "immutable": true
+        },
+        {
+            "trait_type": "rarity",
+            "value": "Rare",
+            "immutable": true
+        },
+        {
+            "trait_type": "durability",
+            "value": 80,
+            "display_type": "number",
+            "max_value": 100,
+            "immutable": true
+        },
+        {
+            "trait_type": "element",
+            "value": "Plasma",
+            "immutable": true
+        },
+        {
+            "trait_type": "asset_type",
+            "value": "Weapon",
+            "immutable": true
+        },
+        {
+            "trait_type": "game_a_skin",
+            "value": "Plasma Rifle"
+        },
+        {
+            "trait_type": "game_b_skin",
+            "value": "Enchanted Bow"
+        },
+        {
+            "trait_type": "game_a_icon",
+            "value": "🔫"
+        },
+        {
+            "trait_type": "game_b_icon",
+            "value": "🏹"
+        }
+    ]
+}

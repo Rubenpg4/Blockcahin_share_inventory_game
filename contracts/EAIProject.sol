@@ -39,6 +39,21 @@ contract EAIProject is ERC1155, ERC1155Supply, AccessControl, ReentrancyGuard {
         bool active;
     }
 
+    struct ListingKey {
+        address seller;
+        uint256 tokenId;
+    }
+
+    struct GlobalListing {
+        address seller;
+        uint256 tokenId;
+        uint256 amount;
+        uint256 pricePerUnit;
+    }
+
+    ListingKey[] public allListingKeys;
+    mapping(address => mapping(uint256 => bool)) public hasEverListed;
+
     // ─── Eventos ────────────────────────────────────────────────────────────────
 
     event TokenMinted(address indexed to, uint256 indexed tokenId, uint256 amount, string uri);
@@ -135,7 +150,50 @@ contract EAIProject is ERC1155, ERC1155Supply, AccessControl, ReentrancyGuard {
             active: true
         });
 
+        if (!hasEverListed[msg.sender][tokenId]) {
+            hasEverListed[msg.sender][tokenId] = true;
+            allListingKeys.push(ListingKey({
+                seller: msg.sender,
+                tokenId: tokenId
+            }));
+        }
+
         emit ItemListed(msg.sender, tokenId, amount, pricePerUnit);
+    }
+
+    /**
+     * @notice Devuelve todas las ofertas activas en el mercado global.
+     */
+    function getAllActiveListings() external view returns (GlobalListing[] memory) {
+        uint256 activeCount = 0;
+        uint256 total = allListingKeys.length;
+
+        for (uint256 i = 0; i < total; i++) {
+            ListingKey memory key = allListingKeys[i];
+            Listing storage l = listings[key.seller][key.tokenId];
+            if (l.active && l.amount > 0) {
+                activeCount++;
+            }
+        }
+
+        GlobalListing[] memory result = new GlobalListing[](activeCount);
+        uint256 currentIndex = 0;
+
+        for (uint256 i = 0; i < total; i++) {
+            ListingKey memory key = allListingKeys[i];
+            Listing storage l = listings[key.seller][key.tokenId];
+            if (l.active && l.amount > 0) {
+                result[currentIndex] = GlobalListing({
+                    seller: key.seller,
+                    tokenId: key.tokenId,
+                    amount: l.amount,
+                    pricePerUnit: l.pricePerUnit
+                });
+                currentIndex++;
+            }
+        }
+
+        return result;
     }
 
     /**
