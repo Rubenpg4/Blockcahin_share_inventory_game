@@ -179,8 +179,10 @@ contract EAIProject is ERC1155, ERC1155Supply, AccessControl, ReentrancyGuard {
         uint256 sellerProceeds = totalPrice - fee;
         accumulatedFees += fee;
 
-        // Transfiere los tokens al comprador
-        safeTransferFrom(seller, msg.sender, tokenId, amount, "");
+        // Transfiere los tokens al comprador usando la función interna
+        // para evitar la doble verificación de operador (el contrato ya
+        // gestiona el acceso mediante el sistema de listings).
+        _safeTransferFrom(seller, msg.sender, tokenId, amount, "");
 
         // Transfiere los fondos al vendedor
         (bool sent, ) = payable(seller).call{value: sellerProceeds}("");

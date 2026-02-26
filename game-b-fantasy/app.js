@@ -8,10 +8,11 @@
 // ─── Configuration ────────────────────────────────────────────────────────────
 
 const CONFIG = {
-  // Replace with deployed contract address after running: npx hardhat run scripts/deploy.js
-  contractAddress: "0x0000000000000000000000000000000000000000",
-  networkName: "Polygon Amoy Testnet",
-  chainId: 80002,
+  // ⚠️ Pega aquí la dirección que imprime deploy-local.js
+  // Ejecuta: npx hardhat run scripts/deploy-local.js --network localhost
+  contractAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  networkName: "Hardhat Local",
+  chainId: 31337,          // ChainId de Hardhat Network local
   ipfsGateway: "https://ipfs.io/ipfs/",
 };
 

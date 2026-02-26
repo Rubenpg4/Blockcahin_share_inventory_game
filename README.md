@@ -11,7 +11,8 @@ Blockcahin_share_inventory_game/
 ├── contracts/
 │   └── EAIProject.sol          # Contrato ERC-1155 con mercado integrado
 ├── scripts/
-│   └── deploy.js               # Script de despliegue con Hardhat
+│   ├── deploy.js               # Script de despliegue en Polygon Amoy
+│   └── deploy-local.js         # Script de despliegue + seed local (sin gas)
 ├── test/
 │   └── EAIProject.test.js      # Tests del contrato
 ├── game-a-space/               # Frontend — Juego Espacial
@@ -105,9 +106,111 @@ La clave de la interoperabilidad está en los metadatos IPFS, que incluyen atrib
 npm install
 ```
 
-### 2. Configurar variables de entorno
+### 2. Compilar contratos
 
-Crea un archivo `.env` en la raíz del proyecto:
+```bash
+npx hardhat compile
+```
+
+### 3. Ejecutar tests
+
+```bash
+npx hardhat test
+```
+
+---
+
+## ▶️ Ejecución Local (Recomendada — sin gas real)
+
+Hardhat incluye una blockchain local que genera automáticamente **20 cuentas con 10.000 ETH** cada una. No necesitas fondos reales ni faucets.
+
+#### PASO 1 — Arranca el nodo (Terminal A, déjala abierta)
+
+```bash
+npx hardhat node
+```
+
+#### PASO 2 — Despliega y siembra datos de prueba (Terminal B)
+
+```bash
+npx hardhat run scripts/deploy-local.js --network localhost
+```
+
+El script realizará automáticamente:
+- ✅ Deploy del contrato
+- ✅ Mint de 10 tokens (Token ID `1`) a la cuenta Seller
+- ✅ Aprobación del marketplace
+- ✅ Listado de 5 unidades a 0.01 ETH
+
+La salida mostrará la **Contract Address** y la **Seller Address**. Cópialas.
+
+#### PASO 3 — Actualiza los frontends
+
+En `game-a-space/app.js` **y** `game-b-fantasy/app.js`, pega tu `Contract Address`:
+
+```js
+const CONFIG = {
+  contractAddress: "0xTU_CONTRACT_ADDRESS_AQUI",  // ← pegar aquí
+  chainId: 31337,
+  ...
+};
+```
+
+#### PASO 4 — Configura MetaMask para Hardhat Local
+
+**4.1 — Añadir la red Hardhat Local**
+
+En MetaMask: `··· → Configuración → Redes → Añadir red → Añadir red manualmente`
+
+| Campo | Valor |
+|---|---|
+| Nombre de la red | `Hardhat Local` |
+| URL RPC nueva | `http://127.0.0.1:8545` |
+| ID de cadena | `31337` |
+| Símbolo de moneda | `ETH` |
+| URL explorador | *(dejar vacío)* |
+
+**4.2 — Importar la cuenta Seller** (la que tiene los tokens y el listado activo)
+
+En MetaMask: `Icono cuenta → Añadir cuenta → Importar cuenta → Clave privada`
+
+```
+Clave privada: 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+Dirección:     0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+```
+
+> Estas claves son públicas y conocidas — solo funcionan en la red local de Hardhat.
+
+**4.3 — (Opcional) Importar cuenta Buyer** para probar la compra desde otra cuenta
+
+```
+Clave privada: 0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
+Dirección:     0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
+```
+
+> ⚠️ **Si reinicias el nodo y las transacciones fallan:** ve a MetaMask → Configuración → Avanzado → **Limpiar datos de actividad** para resetear el nonce.
+
+#### PASO 5 — Lanza los frontends en dos pestañas
+
+```bash
+# Pestaña 1 — Juego Espacial
+cd game-a-space && npx serve .
+
+# Pestaña 2 — Juego de Fantasía
+cd game-b-fantasy && npx serve .
+```
+
+Conecta MetaMask → introduce Token ID `1` → observa la interoperabilidad en tiempo real.
+
+> ⚠️ **Nota:** Cada vez que reinicias `npx hardhat node`, se genera una blockchain nueva. Repite los pasos 2 y 3 para obtener la nueva dirección del contrato.
+
+---
+
+## 🌐 Despliegue en Polygon Amoy Testnet (Opcional)
+
+Requiere saldo de prueba (POL). Consíguelo en [alchemy.com/faucets/polygon-amoy](https://www.alchemy.com/faucets/polygon-amoy).
+
+### Configurar `.env`
 
 ```env
 POLYGON_AMOY_RPC_URL=https://rpc-amoy.polygon.technology
@@ -115,39 +218,14 @@ PRIVATE_KEY=tu_clave_privada_aqui
 POLYGONSCAN_API_KEY=tu_api_key_aqui
 ```
 
-### 3. Compilar contratos
-
-```bash
-npx hardhat compile
-```
-
-### 4. Ejecutar tests
-
-```bash
-npx hardhat test
-```
-
-### 5. Desplegar en Polygon Amoy Testnet
+### Desplegar
 
 ```bash
 npx hardhat run scripts/deploy.js --network polygonAmoy
 ```
 
-### 6. Lanzar frontend (Game A)
-
-```bash
-cd game-a-space
-npx serve .
-```
-
-### 7. Lanzar frontend (Game B)
-
-```bash
-cd game-b-fantasy
-npx serve .
-```
-
 ---
+
 
 ## Flujo de Interoperabilidad
 
