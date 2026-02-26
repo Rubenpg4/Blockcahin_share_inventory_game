@@ -2,24 +2,32 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("EAIProject", function () {
-  let eaiProject;
+  let eaiProject, goldToken;
   let admin, minter, seller, buyer, other;
   const TOKEN_ID = 1;
   const TOKEN_AMOUNT = 10;
   const TOKEN_URI = "ipfs://QmExampleCID/metadata.json";
-  const PRICE_PER_UNIT = ethers.parseEther("0.01");
+  const PRICE_PER_UNIT = ethers.parseEther("10"); // 10 GOLD per unit
 
   beforeEach(async function () {
     [admin, minter, seller, buyer, other] = await ethers.getSigners();
 
+    // Deploy GOLD token
+    const EAIGold = await ethers.getContractFactory("EAIGold");
+    goldToken = await EAIGold.deploy(admin.address);
+
+    // Deploy EAIProject with GOLD reference
     const EAIProject = await ethers.getContractFactory("EAIProject");
-    eaiProject = await EAIProject.deploy(admin.address);
+    eaiProject = await EAIProject.deploy(admin.address, await goldToken.getAddress());
 
     const MINTER_ROLE = await eaiProject.MINTER_ROLE();
     await eaiProject.connect(admin).grantRole(MINTER_ROLE, minter.address);
 
-    // Mint tokens to seller
+    // Mint ERC-1155 tokens to seller
     await eaiProject.connect(minter).mint(seller.address, TOKEN_ID, TOKEN_AMOUNT, TOKEN_URI, "0x");
+
+    // Give buyer some GOLD tokens (send 1 ETH → ~1724 GOLD)
+    await goldToken.connect(buyer).mintGold({ value: ethers.parseEther("1") });
   });
 
   // ─── Mint ──────────────────────────────────────────────────────────────────
@@ -125,7 +133,7 @@ describe("EAIProject", function () {
     });
   });
 
-  // ─── buyItem ──────────────────────────────────────────────────────────────
+  // ─── buyItem (with GOLD) ─────────────────────────────────────────────────
 
   describe("buyItem", function () {
     const BUY_AMOUNT = 3;
@@ -135,28 +143,41 @@ describe("EAIProject", function () {
       await eaiProject.connect(seller).setApprovalForAll(await eaiProject.getAddress(), true);
       await eaiProject.connect(seller).listForSale(TOKEN_ID, TOKEN_AMOUNT, PRICE_PER_UNIT);
       totalPrice = PRICE_PER_UNIT * BigInt(BUY_AMOUNT);
+
+      // Buyer approves EAIProject to spend GOLD
+      await goldToken.connect(buyer).approve(await eaiProject.getAddress(), totalPrice);
     });
 
-    it("should transfer tokens to buyer", async function () {
-      await eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, BUY_AMOUNT, { value: totalPrice });
+    it("should transfer ERC-1155 tokens to buyer", async function () {
+      await eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, BUY_AMOUNT);
       expect(await eaiProject.balanceOf(buyer.address, TOKEN_ID)).to.equal(BUY_AMOUNT);
     });
 
-    it("should deduct tokens from seller", async function () {
-      await eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, BUY_AMOUNT, { value: totalPrice });
+    it("should deduct ERC-1155 tokens from seller", async function () {
+      await eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, BUY_AMOUNT);
       expect(await eaiProject.balanceOf(seller.address, TOKEN_ID)).to.equal(TOKEN_AMOUNT - BUY_AMOUNT);
+    });
+
+    it("should transfer GOLD to seller (minus fee)", async function () {
+      const sellerGoldBefore = await goldToken.balanceOf(seller.address);
+      await eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, BUY_AMOUNT);
+      const sellerGoldAfter = await goldToken.balanceOf(seller.address);
+
+      const fee = (totalPrice * 250n) / 10000n;
+      const sellerProceeds = totalPrice - fee;
+      expect(sellerGoldAfter - sellerGoldBefore).to.equal(sellerProceeds);
     });
 
     it("should emit ItemSold event", async function () {
       await expect(
-        eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, BUY_AMOUNT, { value: totalPrice })
+        eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, BUY_AMOUNT)
       )
         .to.emit(eaiProject, "ItemSold")
         .withArgs(seller.address, buyer.address, TOKEN_ID, BUY_AMOUNT, totalPrice);
     });
 
-    it("should accumulate marketplace fees", async function () {
-      await eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, BUY_AMOUNT, { value: totalPrice });
+    it("should accumulate marketplace fees in GOLD", async function () {
+      await eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, BUY_AMOUNT);
       const fee = (totalPrice * 250n) / 10000n;
       expect(await eaiProject.accumulatedFees()).to.equal(fee);
     });
@@ -164,21 +185,22 @@ describe("EAIProject", function () {
     it("should revert if listing is not active", async function () {
       await eaiProject.connect(seller).cancelListing(TOKEN_ID);
       await expect(
-        eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, BUY_AMOUNT, { value: totalPrice })
+        eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, BUY_AMOUNT)
       ).to.be.revertedWith("EAIProject: listing not active");
     });
 
-    it("should revert if incorrect ether amount sent", async function () {
+    it("should revert if buyer has insufficient GOLD allowance", async function () {
+      // Remove allowance
+      await goldToken.connect(buyer).approve(await eaiProject.getAddress(), 0);
       await expect(
-        eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, BUY_AMOUNT, {
-          value: totalPrice - 1n,
-        })
-      ).to.be.revertedWith("EAIProject: incorrect ether amount");
+        eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, BUY_AMOUNT)
+      ).to.be.reverted;
     });
 
     it("should deactivate listing when all tokens are bought", async function () {
       const fullPrice = PRICE_PER_UNIT * BigInt(TOKEN_AMOUNT);
-      await eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, TOKEN_AMOUNT, { value: fullPrice });
+      await goldToken.connect(buyer).approve(await eaiProject.getAddress(), fullPrice);
+      await eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, TOKEN_AMOUNT);
       const listing = await eaiProject.listings(seller.address, TOKEN_ID);
       expect(listing.active).to.be.false;
     });
@@ -187,18 +209,25 @@ describe("EAIProject", function () {
   // ─── Marketplace fees ────────────────────────────────────────────────────
 
   describe("withdrawFees", function () {
-    it("should allow admin to withdraw accumulated fees", async function () {
+    it("should allow admin to withdraw accumulated GOLD fees", async function () {
       await eaiProject.connect(seller).setApprovalForAll(await eaiProject.getAddress(), true);
       await eaiProject.connect(seller).listForSale(TOKEN_ID, TOKEN_AMOUNT, PRICE_PER_UNIT);
       const totalPrice = PRICE_PER_UNIT * BigInt(TOKEN_AMOUNT);
-      await eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, TOKEN_AMOUNT, { value: totalPrice });
+
+      await goldToken.connect(buyer).approve(await eaiProject.getAddress(), totalPrice);
+      await eaiProject.connect(buyer).buyItem(seller.address, TOKEN_ID, TOKEN_AMOUNT);
 
       const fees = await eaiProject.accumulatedFees();
+      const adminGoldBefore = await goldToken.balanceOf(admin.address);
+
       await expect(eaiProject.connect(admin).withdrawFees(admin.address))
         .to.emit(eaiProject, "FeesWithdrawn")
         .withArgs(admin.address, fees);
 
       expect(await eaiProject.accumulatedFees()).to.equal(0);
+
+      const adminGoldAfter = await goldToken.balanceOf(admin.address);
+      expect(adminGoldAfter - adminGoldBefore).to.equal(fees);
     });
 
     it("should revert if no fees accumulated", async function () {

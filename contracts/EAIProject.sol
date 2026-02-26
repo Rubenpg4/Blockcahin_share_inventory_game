@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
@@ -27,15 +28,18 @@ contract EAIProject is ERC1155, ERC1155Supply, AccessControl, ReentrancyGuard {
     /// @dev Listados activos en el mercado: seller => tokenId => Listing
     mapping(address => mapping(uint256 => Listing)) public listings;
 
+    /// @notice Referencia al token ERC-20 GOLD utilizado como moneda del mercado
+    IERC20 public goldToken;
+
     /// @dev Porcentaje de comisión del mercado en puntos básicos (250 = 2.5%)
     uint256 public marketFee = 250;
 
-    /// @dev Acumulado de comisiones disponibles para retirar
+    /// @dev Acumulado de comisiones disponibles para retirar (en GOLD tokens)
     uint256 public accumulatedFees;
 
     struct Listing {
         uint256 amount;
-        uint256 pricePerUnit; // en wei
+        uint256 pricePerUnit; // en GOLD tokens (18 decimales)
         bool active;
     }
 
@@ -56,17 +60,34 @@ contract EAIProject is ERC1155, ERC1155Supply, AccessControl, ReentrancyGuard {
 
     // ─── Eventos ────────────────────────────────────────────────────────────────
 
-    event TokenMinted(address indexed to, uint256 indexed tokenId, uint256 amount, string uri);
-    event ItemListed(address indexed seller, uint256 indexed tokenId, uint256 amount, uint256 pricePerUnit);
-    event ItemSold(address indexed seller, address indexed buyer, uint256 indexed tokenId, uint256 amount, uint256 totalPrice);
+    event TokenMinted(
+        address indexed to,
+        uint256 indexed tokenId,
+        uint256 amount,
+        string uri
+    );
+    event ItemListed(
+        address indexed seller,
+        uint256 indexed tokenId,
+        uint256 amount,
+        uint256 pricePerUnit
+    );
+    event ItemSold(
+        address indexed seller,
+        address indexed buyer,
+        uint256 indexed tokenId,
+        uint256 amount,
+        uint256 totalPrice
+    );
     event ListingCancelled(address indexed seller, uint256 indexed tokenId);
     event FeesWithdrawn(address indexed to, uint256 amount);
 
     // ─── Constructor ─────────────────────────────────────────────────────────────
 
-    constructor(address admin) ERC1155("") {
+    constructor(address admin, address goldTokenAddress) ERC1155("") {
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(MINTER_ROLE, admin);
+        goldToken = IERC20(goldTokenAddress);
     }
 
     // ─── Mint ────────────────────────────────────────────────────────────────────
@@ -106,7 +127,10 @@ contract EAIProject is ERC1155, ERC1155Supply, AccessControl, ReentrancyGuard {
         string[] memory uris,
         bytes memory data
     ) external onlyRole(MINTER_ROLE) {
-        require(ids.length == uris.length, "EAIProject: ids and uris length mismatch");
+        require(
+            ids.length == uris.length,
+            "EAIProject: ids and uris length mismatch"
+        );
         for (uint256 i = 0; i < ids.length; i++) {
             _tokenURIs[ids[i]] = uris[i];
         }
@@ -137,8 +161,14 @@ contract EAIProject is ERC1155, ERC1155Supply, AccessControl, ReentrancyGuard {
         uint256 pricePerUnit
     ) external {
         require(amount > 0, "EAIProject: amount must be greater than zero");
-        require(pricePerUnit > 0, "EAIProject: price must be greater than zero");
-        require(balanceOf(msg.sender, tokenId) >= amount, "EAIProject: insufficient token balance");
+        require(
+            pricePerUnit > 0,
+            "EAIProject: price must be greater than zero"
+        );
+        require(
+            balanceOf(msg.sender, tokenId) >= amount,
+            "EAIProject: insufficient token balance"
+        );
         require(
             isApprovedForAll(msg.sender, address(this)),
             "EAIProject: contract not approved to manage tokens"
@@ -152,10 +182,9 @@ contract EAIProject is ERC1155, ERC1155Supply, AccessControl, ReentrancyGuard {
 
         if (!hasEverListed[msg.sender][tokenId]) {
             hasEverListed[msg.sender][tokenId] = true;
-            allListingKeys.push(ListingKey({
-                seller: msg.sender,
-                tokenId: tokenId
-            }));
+            allListingKeys.push(
+                ListingKey({seller: msg.sender, tokenId: tokenId})
+            );
         }
 
         emit ItemListed(msg.sender, tokenId, amount, pricePerUnit);
@@ -164,7 +193,11 @@ contract EAIProject is ERC1155, ERC1155Supply, AccessControl, ReentrancyGuard {
     /**
      * @notice Devuelve todas las ofertas activas en el mercado global.
      */
-    function getAllActiveListings() external view returns (GlobalListing[] memory) {
+    function getAllActiveListings()
+        external
+        view
+        returns (GlobalListing[] memory)
+    {
         uint256 activeCount = 0;
         uint256 total = allListingKeys.length;
 
@@ -201,7 +234,10 @@ contract EAIProject is ERC1155, ERC1155Supply, AccessControl, ReentrancyGuard {
      * @param tokenId ID del token cuyo listado se cancela.
      */
     function cancelListing(uint256 tokenId) external {
-        require(listings[msg.sender][tokenId].active, "EAIProject: no active listing");
+        require(
+            listings[msg.sender][tokenId].active,
+            "EAIProject: no active listing"
+        );
         listings[msg.sender][tokenId].active = false;
         emit ListingCancelled(msg.sender, tokenId);
     }
@@ -216,15 +252,17 @@ contract EAIProject is ERC1155, ERC1155Supply, AccessControl, ReentrancyGuard {
         address seller,
         uint256 tokenId,
         uint256 amount
-    ) external payable nonReentrant {
+    ) external nonReentrant {
         Listing storage listing = listings[seller][tokenId];
 
         require(listing.active, "EAIProject: listing not active");
         require(amount > 0, "EAIProject: amount must be greater than zero");
-        require(listing.amount >= amount, "EAIProject: insufficient listed amount");
+        require(
+            listing.amount >= amount,
+            "EAIProject: insufficient listed amount"
+        );
 
         uint256 totalPrice = listing.pricePerUnit * amount;
-        require(msg.value == totalPrice, "EAIProject: incorrect ether amount");
 
         // Actualiza el listado antes de transferir (checks-effects-interactions)
         listing.amount -= amount;
@@ -232,19 +270,25 @@ contract EAIProject is ERC1155, ERC1155Supply, AccessControl, ReentrancyGuard {
             listing.active = false;
         }
 
-        // Calcula y acumula la comisión del mercado
+        // Calcula y acumula la comisión del mercado (en GOLD)
         uint256 fee = (totalPrice * marketFee) / 10000;
         uint256 sellerProceeds = totalPrice - fee;
         accumulatedFees += fee;
 
-        // Transfiere los tokens al comprador usando la función interna
-        // para evitar la doble verificación de operador (el contrato ya
-        // gestiona el acceso mediante el sistema de listings).
-        _safeTransferFrom(seller, msg.sender, tokenId, amount, "");
+        // Transfiere GOLD del comprador al vendedor
+        require(
+            goldToken.transferFrom(msg.sender, seller, sellerProceeds),
+            "EAIProject: GOLD transfer to seller failed"
+        );
 
-        // Transfiere los fondos al vendedor
-        (bool sent, ) = payable(seller).call{value: sellerProceeds}("");
-        require(sent, "EAIProject: ether transfer to seller failed");
+        // Transfiere la comisión en GOLD al contrato
+        require(
+            goldToken.transferFrom(msg.sender, address(this), fee),
+            "EAIProject: GOLD fee transfer failed"
+        );
+
+        // Transfiere los tokens ERC-1155 al comprador
+        _safeTransferFrom(seller, msg.sender, tokenId, amount, "");
 
         emit ItemSold(seller, msg.sender, tokenId, amount, totalPrice);
     }
@@ -253,12 +297,16 @@ contract EAIProject is ERC1155, ERC1155Supply, AccessControl, ReentrancyGuard {
      * @notice Retira las comisiones acumuladas. Solo el admin puede hacerlo.
      * @param to Dirección receptora de las comisiones.
      */
-    function withdrawFees(address to) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+    function withdrawFees(
+        address to
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
         uint256 amount = accumulatedFees;
         require(amount > 0, "EAIProject: no fees to withdraw");
         accumulatedFees = 0;
-        (bool sent, ) = payable(to).call{value: amount}("");
-        require(sent, "EAIProject: ether transfer failed");
+        require(
+            goldToken.transfer(to, amount),
+            "EAIProject: GOLD transfer failed"
+        );
         emit FeesWithdrawn(to, amount);
     }
 
@@ -266,7 +314,9 @@ contract EAIProject is ERC1155, ERC1155Supply, AccessControl, ReentrancyGuard {
      * @notice Actualiza la comisión del mercado. Solo el admin puede hacerlo.
      * @param newFee Nuevo porcentaje en puntos básicos (máx. 1000 = 10%).
      */
-    function setMarketFee(uint256 newFee) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMarketFee(
+        uint256 newFee
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(newFee <= 1000, "EAIProject: fee cannot exceed 10%");
         marketFee = newFee;
     }
@@ -282,12 +332,9 @@ contract EAIProject is ERC1155, ERC1155Supply, AccessControl, ReentrancyGuard {
         super._update(from, to, ids, values);
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC1155, AccessControl)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC1155, AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

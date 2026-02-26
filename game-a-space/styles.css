@@ -885,6 +885,132 @@ main {
   border-radius: 3px;
 }
 
+/* ─── GOLD Token Styles ────────────────────────────────────────────────────── */
+.user-balance-eth {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 0.2rem 0.5rem;
+  margin-left: 0.3rem;
+}
+
+.btn-gold {
+  border-color: #ffb423;
+  color: #ffb423;
+  background: rgba(255, 180, 35, 0.08);
+  font-weight: 700;
+}
+
+.btn-gold:hover {
+  background: rgba(255, 180, 35, 0.18);
+  box-shadow: 0 0 15px rgba(255, 180, 35, 0.2);
+}
+
+/* ─── GOLD Conversion Modal ───────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-box {
+  position: relative;
+  background: var(--bg-panel);
+  border: 1px solid rgba(255, 180, 35, 0.3);
+  border-radius: 14px;
+  padding: 2rem 2rem 1.5rem;
+  width: 360px;
+  max-width: 90vw;
+  box-shadow: 0 12px 50px rgba(255, 180, 35, 0.12), 0 0 0 1px rgba(255, 180, 35, 0.08);
+  animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleUp {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffb423;
+  text-align: center;
+  margin-bottom: 0.3rem;
+  letter-spacing: 0.05em;
+}
+
+.modal-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 1.2rem;
+}
+
+.modal-box .form-row {
+  margin-bottom: 0.8rem;
+}
+
+.modal-box .form-row input {
+  width: 140px;
+}
+
+.conversion-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 180, 35, 0.06);
+  border: 1px solid rgba(255, 180, 35, 0.15);
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.conversion-preview span:first-child {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.gold-amount {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffb423;
+}
+
+.modal-box .btn-gold {
+  width: 100%;
+  padding: 0.7rem;
+  font-size: 0.9rem;
+  border-radius: 8px;
+}
+
 @media (max-width:768px) {
   header {
     flex-direction: column;

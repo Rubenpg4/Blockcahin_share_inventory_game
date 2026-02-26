@@ -55,9 +55,11 @@
             <span class="user-name" id="user-name"></span>
             <span class="user-addr" id="user-addr"></span>
           </div>
-          <span class="user-balance" id="user-balance">0 ETH</span>
+          <span class="user-balance" id="user-balance">0 GOLD</span>
+          <span class="user-balance user-balance-eth" id="user-balance-eth">0 ETH</span>
         </div>
-        <button id="refresh-all-btn" class="btn-action" style="margin-right: 15px;">Refresh</button>
+        <button id="buy-gold-btn" class="btn-action btn-gold" style="margin-right: 8px;">💰 Buy GOLD</button>
+        <button id="refresh-all-btn" class="btn-action" style="margin-right: 8px;">Refresh</button>
         <button id="logout-btn" class="btn-logout">Logout</button>
       </div>
     </header>
@@ -94,8 +96,8 @@
               <input type="number" id="sell-amount" value="1" min="1" />
             </div>
             <div class="form-row">
-              <label>Price (ETH each)</label>
-              <input type="number" id="sell-price" value="0.01" min="0.001" step="0.001" />
+              <label>Price (GOLD each)</label>
+              <input type="number" id="sell-price" value="10" min="1" step="1" />
             </div>
             <button id="list-btn" class="btn-action btn-sell">List for Sale</button>
           </div>
@@ -120,6 +122,24 @@
         <p id="status-msg">System standby</p>
       </footer>
     </main>
+
+    <!-- ═══ GOLD CONVERSION MODAL ═══════════════════════════════════════════ -->
+    <div id="gold-modal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <button id="close-gold-modal" class="btn-close">✕</button>
+        <h3 class="modal-title">💰 Convert ETH → GOLD</h3>
+        <p class="modal-subtitle">Rate: 1 GOLD = 0.00058 ETH</p>
+        <div class="form-row">
+          <label>ETH to spend</label>
+          <input type="number" id="gold-eth-input" value="0.1" min="0.0001" step="0.01" />
+        </div>
+        <div class="conversion-preview">
+          <span>You will receive:</span>
+          <span id="gold-preview" class="gold-amount">≈ 172.41 GOLD</span>
+        </div>
+        <button id="convert-gold-btn" class="btn-action btn-gold">⚡ Convert Now</button>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.0/dist/ethers.umd.min.js"></script>

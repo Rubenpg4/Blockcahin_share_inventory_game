@@ -2,16 +2,19 @@
  * Game B — Fantasy Realm
  * Auto-wallet login + inventory grid + friend trading.
  * Same wallet accounts as Game A but rendered with fantasy theme.
+ * Economy powered by GOLD (ERC-20) token.
  */
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
 const CONFIG = {
-  contractAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  contractAddress: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+  goldContractAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
   rpcUrl: "http://127.0.0.1:8545",
   metadataBase: "http://localhost:3333/",
   maxTokenId: 6,
   gameKey: "b",
+  goldRate: 0.00058, // 1 GOLD = 0.00058 ETH
 };
 
 // Same Hardhat accounts — different character names for fantasy
@@ -51,8 +54,17 @@ const EAI_ABI = [
   "function isApprovedForAll(address account, address operator) view returns (bool)",
   "function listForSale(uint256 tokenId, uint256 amount, uint256 pricePerUnit)",
   "function cancelListing(uint256 tokenId)",
-  "function buyItem(address seller, uint256 tokenId, uint256 amount) payable",
+  "function buyItem(address seller, uint256 tokenId, uint256 amount)",
   "function getAllActiveListings() view returns (tuple(address seller, uint256 tokenId, uint256 amount, uint256 pricePerUnit)[])"
+];
+
+const GOLD_ABI = [
+  "function mintGold() payable",
+  "function balanceOf(address account) view returns (uint256)",
+  "function approve(address spender, uint256 amount) returns (bool)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function transfer(address to, uint256 amount) returns (bool)",
+  "function decimals() view returns (uint8)"
 ];
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -60,6 +72,7 @@ const EAI_ABI = [
 let provider = null;
 let wallet = null;
 let contract = null;
+let goldContract = null;
 let currentPlayer = null;
 let inventoryCache = [];
 let selectedItem = null;
@@ -99,6 +112,7 @@ async function loginAsPlayer(playerId) {
     provider = new ethers.JsonRpcProvider(CONFIG.rpcUrl);
     wallet = new ethers.Wallet(currentPlayer.privateKey, provider);
     contract = new ethers.Contract(CONFIG.contractAddress, EAI_ABI, wallet);
+    goldContract = new ethers.Contract(CONFIG.goldContractAddress, GOLD_ABI, wallet);
 
     // Listen to blockchain events for reactive UI
     contract.removeAllListeners();
@@ -138,6 +152,7 @@ $("logout-btn").addEventListener("click", () => {
   currentPlayer = null;
   wallet = null;
   contract = null;
+  goldContract = null;
   inventoryCache = [];
   selectedItem = null;
   const panel = $("detail-panel");
@@ -169,13 +184,63 @@ $("refresh-all-btn").addEventListener("click", async () => {
 async function updateBalance() {
   if (!provider || !currentPlayer) return;
   try {
-    const bal = await provider.getBalance(currentPlayer.address);
-    const ethVal = ethers.formatEther(bal);
-    $("user-balance").textContent = `${ethVal.slice(0, 6)} ETH`;
+    // GOLD balance (primary)
+    const goldBal = await goldContract.balanceOf(currentPlayer.address);
+    const goldVal = ethers.formatEther(goldBal);
+    $("user-balance").textContent = `${parseFloat(goldVal).toFixed(2)} GOLD`;
+
+    // ETH balance (secondary)
+    const ethBal = await provider.getBalance(currentPlayer.address);
+    const ethVal = ethers.formatEther(ethBal);
+    $("user-balance-eth").textContent = `${ethVal.slice(0, 6)} ETH`;
   } catch (err) {
     console.error("Failed to update balance:", err);
   }
 }
+
+// ─── GOLD Conversion Popup ──────────────────────────────────────────────────
+
+$("buy-gold-btn").addEventListener("click", () => {
+  show("gold-modal");
+  updateGoldPreview();
+});
+
+$("close-gold-modal").addEventListener("click", () => {
+  hide("gold-modal");
+});
+
+$("gold-modal").addEventListener("click", (e) => {
+  if (e.target.id === "gold-modal") hide("gold-modal");
+});
+
+$("gold-eth-input").addEventListener("input", updateGoldPreview);
+
+function updateGoldPreview() {
+  const ethAmount = parseFloat($("gold-eth-input").value) || 0;
+  const goldAmount = ethAmount / CONFIG.goldRate;
+  $("gold-preview").textContent = `≈ ${goldAmount.toFixed(2)} GOLD`;
+}
+
+$("convert-gold-btn").addEventListener("click", async () => {
+  if (!goldContract || !currentPlayer) return;
+  const ethAmount = parseFloat($("gold-eth-input").value);
+  if (!ethAmount || ethAmount <= 0) {
+    setStatus("Enter a valid ETH amount.", true);
+    return;
+  }
+
+  try {
+    setStatus("Converting ETH to GOLD...");
+    const tx = await goldContract.mintGold({ value: ethers.parseEther(String(ethAmount)) });
+    await tx.wait();
+    await updateBalance();
+    hide("gold-modal");
+    setStatus(`Converted ${ethAmount} ETH to GOLD!`);
+    showToast(`💰 Converted ${ethAmount} ETH to GOLD!`);
+  } catch (err) {
+    setStatus(`Conversion failed: ${err.message}`, true);
+  }
+});
 
 // ─── Inventory loading ────────────────────────────────────────────────────────
 
@@ -254,8 +319,8 @@ function createItemCell(item, isMarket = false, sellerAddr = null) {
 
   let extra = "";
   if (isMarket && item.listing) {
-    const priceEth = ethers.formatEther(item.listing.pricePerUnit);
-    extra = `<span class="item-price">${priceEth} ETH</span>
+    const priceGold = ethers.formatEther(item.listing.pricePerUnit);
+    extra = `<span class="item-price">${priceGold} GOLD</span>
              <button class="btn-buy" data-seller="${sellerAddr}" data-token="${tokenId}">Buy</button>`;
   }
 
@@ -344,7 +409,7 @@ $("list-btn").addEventListener("click", async () => {
     }
     const tx = await contract.listForSale(selectedItem.tokenId, amount, ethers.parseEther(priceStr));
     await tx.wait();
-    setStatus(`Listed ${amount} relic(s) at ${priceStr} ETH each!`);
+    setStatus(`Listed ${amount} relic(s) at ${priceStr} GOLD each!`);
     await updateBalance();
     await loadInventory();
   } catch (err) { setStatus(`Listing failed: ${err.message}`, true); }
@@ -378,8 +443,8 @@ async function loadGlobalMarket() {
 
       const amount = Number(listing.amount);
       const pricePerUnitWei = listing.pricePerUnit;
-      const pricePerUnitEther = parseFloat(ethers.formatEther(pricePerUnitWei));
-      const totalPrice = (amount * pricePerUnitEther).toFixed(3);
+      const pricePerUnitGold = parseFloat(ethers.formatEther(pricePerUnitWei));
+      const totalPrice = (amount * pricePerUnitGold).toFixed(2);
 
       const card = document.createElement("div");
       card.className = "market-card";
@@ -398,7 +463,7 @@ async function loadGlobalMarket() {
         </div>
         <div class="market-price-row">
           <div>
-            <span class="market-price-label">Price (ETH)</span>
+            <span class="market-price-label">Price (GOLD)</span>
             <span class="market-price-value">${totalPrice}</span>
           </div>
           <!-- Call the global window purchase function -->
@@ -423,20 +488,29 @@ async function loadGlobalMarket() {
 
 // Ensure buyMarketPack is exposed globally so inline onclick works
 window.buyMarketPack = async function (seller, tokenId, packAmount, pricePerUnitWei) {
-  if (!contract || !provider || !currentPlayer) return;
+  if (!contract || !provider || !currentPlayer || !goldContract) return;
   try {
     const pricePerUnit = BigInt(pricePerUnitWei);
     const totalCost = pricePerUnit * BigInt(packAmount);
 
-    const bal = await provider.getBalance(currentPlayer.address);
-    if (bal < totalCost) {
-      alert("Not enough gold! You do not have enough ETH to purchase this pack.");
-      setStatus("Purchase cancelled: Insufficient funds.", true);
+    // Check GOLD balance
+    const goldBal = await goldContract.balanceOf(currentPlayer.address);
+    if (goldBal < totalCost) {
+      alert("Not enough gold! You do not have enough GOLD to purchase this pack. Use 'Buy GOLD' to convert ETH.");
+      setStatus("Purchase cancelled: Insufficient GOLD.", true);
       return;
     }
 
+    // Check and request GOLD allowance for the EAI contract
+    const currentAllowance = await goldContract.allowance(currentPlayer.address, CONFIG.contractAddress);
+    if (currentAllowance < totalCost) {
+      setStatus("Approving GOLD spend...");
+      const approveTx = await goldContract.approve(CONFIG.contractAddress, totalCost);
+      await approveTx.wait();
+    }
+
     setStatus("Preparing gold for purchase...");
-    const tx = await contract.buyItem(seller, tokenId, packAmount, { value: totalCost });
+    const tx = await contract.buyItem(seller, tokenId, packAmount);
     await tx.wait();
 
     setStatus(`Purchase successful! Pack of ${packAmount} added to vault.`);
