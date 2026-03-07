@@ -141,6 +141,19 @@
     </div>
   </div>
 
+  <!-- ═══ TRANSACTION OVERLAY ══════════════════════════════════════════════ -->
+  <div id="tx-overlay" class="tx-overlay hidden">
+    <div class="tx-card">
+      <div class="tx-icon-wrap" id="tx-icon-wrap">
+        <div class="tx-spinner"></div>
+      </div>
+      <h3 class="tx-title" id="tx-title">Processing transaction...</h3>
+      <div class="tx-steps" id="tx-steps"></div>
+      <p class="tx-summary hidden" id="tx-summary"></p>
+      <button class="btn-action tx-close-btn hidden" id="tx-close-btn">Continue</button>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.0/dist/ethers.umd.min.js"></script>
   <script src="app.js"></script>
 </body>

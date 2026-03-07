@@ -101,6 +101,86 @@ const $ = (id) => document.getElementById(id);
 const show = (el) => { if (typeof el === "string") el = $(el); el.classList.remove("hidden"); };
 const hide = (el) => { if (typeof el === "string") el = $(el); el.classList.add("hidden"); };
 
+// ─── Transaction Overlay ──────────────────────────────────────────────────────
+
+let _txActiveStep = null;
+
+function showTxOverlay(title) {
+  _txActiveStep = null;
+  const iconWrap = $("tx-icon-wrap");
+  iconWrap.className = "tx-icon-wrap";
+  iconWrap.innerHTML = '<div class="tx-spinner"></div>';
+  $("tx-title").textContent = title;
+  $("tx-steps").innerHTML = "";
+  $("tx-summary").textContent = "";
+  $("tx-summary").className = "tx-summary hidden";
+  $("tx-close-btn").classList.add("hidden");
+  show("tx-overlay");
+}
+
+function addTxStep(message) {
+  if (_txActiveStep) {
+    _txActiveStep.classList.remove("active");
+    _txActiveStep.classList.add("done");
+    _txActiveStep.querySelector(".tx-step-icon").innerHTML = '<span class="tx-step-check">✓</span>';
+  }
+  const step = document.createElement("div");
+  step.className = "tx-step active";
+  step.innerHTML = `
+    <span class="tx-step-icon"><span class="tx-step-spinner"></span></span>
+    <span class="tx-step-text">${message}</span>
+  `;
+  $("tx-steps").appendChild(step);
+  _txActiveStep = step;
+}
+
+function finishTxOverlay(summary) {
+  if (_txActiveStep) {
+    _txActiveStep.classList.remove("active");
+    _txActiveStep.classList.add("done");
+    _txActiveStep.querySelector(".tx-step-icon").innerHTML = '<span class="tx-step-check">✓</span>';
+    _txActiveStep = null;
+  }
+  const iconWrap = $("tx-icon-wrap");
+  iconWrap.innerHTML = "";
+  iconWrap.className = "tx-icon-wrap state-success";
+  $("tx-title").textContent = "Decree Sealed";
+  const summaryEl = $("tx-summary");
+  summaryEl.textContent = summary;
+  summaryEl.className = "tx-summary";
+  show("tx-close-btn");
+}
+
+function failTxOverlay(errorMsg) {
+  if (_txActiveStep) {
+    _txActiveStep.classList.remove("active");
+    _txActiveStep.classList.add("failed");
+    _txActiveStep.querySelector(".tx-step-icon").innerHTML = '<span class="tx-step-x">✕</span>';
+    _txActiveStep = null;
+  }
+  const iconWrap = $("tx-icon-wrap");
+  iconWrap.innerHTML = "";
+  iconWrap.className = "tx-icon-wrap state-error";
+  $("tx-title").textContent = "The Spell Backfired";
+  const summaryEl = $("tx-summary");
+  summaryEl.textContent = errorMsg;
+  summaryEl.className = "tx-summary error-summary";
+  show("tx-close-btn");
+}
+
+function hideTxOverlay() {
+  hide("tx-overlay");
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  $("tx-close-btn")?.addEventListener("click", hideTxOverlay);
+  $("tx-overlay")?.addEventListener("click", (e) => {
+    if (e.target.id === "tx-overlay" && !$("tx-close-btn").classList.contains("hidden")) {
+      hideTxOverlay();
+    }
+  });
+});
+
 const setStatus = (msg, isError = false) => {
   const el = $("status-msg");
   if (!el) return;
@@ -260,16 +340,21 @@ $("convert-gold-btn").addEventListener("click", async () => {
     setStatus("Enter a valid ETH amount.", true);
     return;
   }
+  const goldAmount = (ethAmount / CONFIG.goldRate).toFixed(2);
+  hide("gold-modal");
+  showTxOverlay("Converting ETH → GOLD");
 
   try {
-    setStatus("Converting ETH to GOLD...");
+    addTxStep("Channeling ETH into the treasury vault...");
     const tx = await goldContract.mintGold({ value: ethers.parseEther(String(ethAmount)) });
+    addTxStep("Awaiting the blockchain oracle's confirmation...");
     await tx.wait();
     await updateBalance();
-    hide("gold-modal");
+    finishTxOverlay(`${currentPlayer.name} (${currentPlayer.address.slice(0,6)}···${currentPlayer.address.slice(-4)}) exchanged ${ethAmount} ETH for ${goldAmount} GOLD.`);
     setStatus(`Converted ${ethAmount} ETH to GOLD!`);
     showToast(`💰 Converted ${ethAmount} ETH to GOLD!`);
   } catch (err) {
+    failTxOverlay(`Conversion failed: ${err.message}`);
     setStatus(`Conversion failed: ${err.message}`, true);
   }
 });
@@ -498,33 +583,48 @@ $("list-btn").addEventListener("click", async () => {
     setStatus("Enter valid amount and price.", true); return;
   }
 
+  const itemName = getThemedName(selectedItem.metadata);
+  const sellerShort = `${currentPlayer.address.slice(0,6)}···${currentPlayer.address.slice(-4)}`;
+
   try {
     if (selectedItem.isNFT) {
-      // List NFT for sale
-      setStatus("Listing artifact for sale...");
+      showTxOverlay(`Offering ${itemName} to the Bazaar`);
+      addTxStep("Verifying guild approval for artifact transfer...");
       const approved = await nftContract.isApprovedForAll(currentPlayer.address, CONFIG.nftContractAddress);
       if (!approved) {
+        addTxStep("Granting the guild authority over your artifacts...");
         const tx0 = await nftContract.setApprovalForAll(CONFIG.nftContractAddress, true);
         await tx0.wait();
       }
+      addTxStep("Inscribing the listing decree on the blockchain...");
       const tx = await nftContract.listNFTForSale(selectedItem.tokenId, ethers.parseEther(priceStr));
+      addTxStep("Awaiting the oracle's seal...");
       await tx.wait();
+      finishTxOverlay(`${currentPlayer.name} (${sellerShort}) offered ${itemName} (Legendary Artifact) to the Grand Bazaar for ${priceStr} GOLD.`);
       setStatus(`Listed artifact at ${priceStr} GOLD!`);
     } else {
-      // List ERC-1155 for sale
-      setStatus("Listing relic for sale...");
+      showTxOverlay(`Offering ${amount}× ${itemName} to the Bazaar`);
+      addTxStep("Verifying guild approval for relic transfer...");
       const approved = await contract.isApprovedForAll(currentPlayer.address, CONFIG.contractAddress);
       if (!approved) {
+        addTxStep("Granting the guild authority over your relics...");
         const tx0 = await contract.setApprovalForAll(CONFIG.contractAddress, true);
         await tx0.wait();
       }
+      addTxStep("Inscribing the listing decree on the blockchain...");
       const tx = await contract.listForSale(selectedItem.tokenId, amount, ethers.parseEther(priceStr));
+      addTxStep("Awaiting the oracle's seal...");
       await tx.wait();
+      const total = (amount * parseFloat(priceStr)).toFixed(2);
+      finishTxOverlay(`${currentPlayer.name} (${sellerShort}) offered ${amount}× ${itemName} to the Grand Bazaar at ${priceStr} GOLD each (${total} GOLD total).`);
       setStatus(`Listed ${amount} relic(s) at ${priceStr} GOLD each!`);
     }
     await updateBalance();
     await loadInventory();
-  } catch (err) { setStatus(`Listing failed: ${err.message}`, true); }
+  } catch (err) {
+    failTxOverlay(`Listing failed: ${err.message}`);
+    setStatus(`Listing failed: ${err.message}`, true);
+  }
 });
 
 // ─── Global Market System ───────────────────────────────────────────────────
@@ -652,35 +752,49 @@ async function loadGlobalMarket() {
 // Ensure buyMarketPack is exposed globally so inline onclick works
 window.buyMarketPack = async function (seller, tokenId, packAmount, pricePerUnitWei) {
   if (!contract || !provider || !currentPlayer || !goldContract) return;
+
+  const pricePerUnit = BigInt(pricePerUnitWei);
+  const totalCost = pricePerUnit * BigInt(packAmount);
+  const totalGold = parseFloat(ethers.formatEther(totalCost)).toFixed(2);
+
+  // Check GOLD balance first (before showing overlay)
+  const goldBal = await goldContract.balanceOf(currentPlayer.address);
+  if (goldBal < totalCost) {
+    alert("Not enough gold! You do not have enough GOLD to purchase this pack. Use 'Buy GOLD' to convert ETH.");
+    setStatus("Purchase cancelled: Insufficient GOLD.", true);
+    return;
+  }
+
+  const metadata = await fetchMetadata(tokenId);
+  const itemName = metadata ? getThemedName(metadata) : `Item #${tokenId}`;
+  const sellerObj = PLAYERS.find(p => p.address === seller) || { name: "Unknown Trader" };
+  const sellerShort = `${seller.slice(0,6)}···${seller.slice(-4)}`;
+  const buyerShort = `${currentPlayer.address.slice(0,6)}···${currentPlayer.address.slice(-4)}`;
+
+  showTxOverlay(`Acquiring ${packAmount}× ${itemName}`);
+
   try {
-    const pricePerUnit = BigInt(pricePerUnitWei);
-    const totalCost = pricePerUnit * BigInt(packAmount);
-
-    // Check GOLD balance
-    const goldBal = await goldContract.balanceOf(currentPlayer.address);
-    if (goldBal < totalCost) {
-      alert("Not enough gold! You do not have enough GOLD to purchase this pack. Use 'Buy GOLD' to convert ETH.");
-      setStatus("Purchase cancelled: Insufficient GOLD.", true);
-      return;
-    }
-
     // Check and request GOLD allowance for the EAI contract
+    addTxStep("Consulting the gold treasury reserves...");
     const currentAllowance = await goldContract.allowance(currentPlayer.address, CONFIG.contractAddress);
     if (currentAllowance < totalCost) {
-      setStatus("Approving GOLD spend...");
+      addTxStep("Authorising the guild to draw from your treasury...");
       const approveTx = await goldContract.approve(CONFIG.contractAddress, totalCost);
       await approveTx.wait();
     }
 
-    setStatus("Preparing gold for purchase...");
+    addTxStep("Sealing the trade agreement on the blockchain...");
     const tx = await contract.buyItem(seller, tokenId, packAmount);
+    addTxStep("Awaiting the oracle's confirmation...");
     await tx.wait();
 
+    finishTxOverlay(`${currentPlayer.name} (${buyerShort}) acquired ${packAmount}× ${itemName} from ${sellerObj.name} (${sellerShort}), paying ${totalGold} GOLD.`);
     setStatus(`Purchase successful! Pack of ${packAmount} added to vault.`);
     await updateBalance();
     await loadInventory();
     loadGlobalMarket();
   } catch (err) {
+    failTxOverlay(`Purchase failed: ${err.message}`);
     setStatus(`Purchase failed: ${err.message}`, true);
   }
 }
@@ -688,35 +802,47 @@ window.buyMarketPack = async function (seller, tokenId, packAmount, pricePerUnit
 // Buy NFT from market
 window.buyNFTFromMarket = async function (tokenId, priceWei) {
   if (!nftContract || !provider || !currentPlayer || !goldContract) return;
+
+  const price = BigInt(priceWei);
+  const priceGold = parseFloat(ethers.formatEther(price)).toFixed(2);
+
+  // Check GOLD balance first (before showing overlay)
+  const goldBal = await goldContract.balanceOf(currentPlayer.address);
+  if (goldBal < price) {
+    alert("Not enough gold! You do not have enough GOLD to purchase this artifact. Use 'Buy GOLD' to convert ETH.");
+    setStatus("Purchase cancelled: Insufficient GOLD.", true);
+    return;
+  }
+
+  const metadata = await fetchNFTMetadata(tokenId);
+  const itemName = metadata ? getThemedName(metadata) : `NFT #${tokenId}`;
+  const buyerShort = `${currentPlayer.address.slice(0,6)}···${currentPlayer.address.slice(-4)}`;
+
+  showTxOverlay(`Claiming ${itemName} (Legendary Artifact)`);
+
   try {
-    const price = BigInt(priceWei);
-
-    // Check GOLD balance
-    const goldBal = await goldContract.balanceOf(currentPlayer.address);
-    if (goldBal < price) {
-      alert("Not enough gold! You do not have enough GOLD to purchase this artifact. Use 'Buy GOLD' to convert ETH.");
-      setStatus("Purchase cancelled: Insufficient GOLD.", true);
-      return;
-    }
-
     // Check and request GOLD allowance for the NFT contract
+    addTxStep("Verifying arcane gold reserves for this artifact...");
     const currentAllowance = await goldContract.allowance(currentPlayer.address, CONFIG.nftContractAddress);
     if (currentAllowance < price) {
-      setStatus("Approving GOLD spend for artifact...");
+      addTxStep("Authorising the guild to claim gold for this artifact...");
       const approveTx = await goldContract.approve(CONFIG.nftContractAddress, price);
       await approveTx.wait();
     }
 
-    setStatus("Acquiring legendary artifact...");
+    addTxStep("Transferring ownership of the legendary artifact...");
     const tx = await nftContract.buyNFT(tokenId);
+    addTxStep("Awaiting the oracle's final seal...");
     await tx.wait();
 
+    finishTxOverlay(`${currentPlayer.name} (${buyerShort}) claimed ${itemName} (Legendary Artifact #${tokenId}), paying ${priceGold} GOLD.`);
     setStatus(`Artifact acquired! NFT #${tokenId} is now yours.`);
     showToast(`🔥 Legendary artifact NFT #${tokenId} acquired!`);
     await updateBalance();
     await loadInventory();
     loadGlobalMarket();
   } catch (err) {
+    failTxOverlay(`Purchase failed: ${err.message}`);
     setStatus(`Purchase failed: ${err.message}`, true);
   }
 }
